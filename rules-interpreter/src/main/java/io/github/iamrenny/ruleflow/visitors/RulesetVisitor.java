@@ -46,9 +46,32 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
 
         for (RuleFlowLanguageParser.RulesetsContext ruleSet : ctx.rulesets()) {
             if (ruleSet.ruleset_condition() != null) {
-                Object result = visitor.visit(ruleSet.ruleset_condition().expr());
-                if (!(result instanceof Boolean) || !((Boolean) result)) {
-                    continue;
+                try {
+                    Object result = visitor.visit(ruleSet.ruleset_condition().expr());
+                    if (!(result instanceof Boolean) || !((Boolean) result)) {
+                        continue;
+                    }
+                } catch (RuntimeException ex) {
+                    if (ex.getCause() != null && ex.getCause() instanceof PropertyNotFoundException) {
+                        logger.debug("Property not found in ruleset condition: {} {}", ctx.workflow_name().getText(), ruleSet.name().getText(), ex);
+                        warnings.add(ex.getCause().getMessage());
+                        continue;
+                    } else if (ex.getCause() != null && ex.getCause() instanceof UnexpectedSymbolException) {
+                        logger.warn("Unexpected symbol in ruleset condition: {} {}", ctx.workflow_name().getText(), ruleSet.name().getText(), ex);
+                        warnings.add(ex.getCause().getMessage());
+                        continue;
+                    } else if (ex.getCause() != null && ex.getCause() instanceof ActionParameterResolutionException) {
+                        logger.warn("Action parameter resolution failed in ruleset condition: {} {}", ctx.workflow_name().getText(), ruleSet.name().getText(), ex);
+                        warnings.add(ex.getCause().getMessage());
+                        continue;
+                    } else {
+                        logger.error("Error while evaluating ruleset condition {} {}",
+                            ctx.workflow_name().getText(), ruleSet.name().getText(), ex);
+                        warnings.add(ex.getMessage() != null ? ex.getMessage()
+                            : "Unexpected Exception at " + ruleSet.getText());
+                        error = true;
+                        continue;
+                    }
                 }
             }
             for (RuleFlowLanguageParser.RulesContext rule : ruleSet.rules()) {
