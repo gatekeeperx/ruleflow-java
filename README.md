@@ -189,6 +189,22 @@ numbers
 `all` returns true if all elements match the given predicate. Note that all() returns true when called with any valid predicate on an empty collection.
 `distinct` Returns the count of distinct non null values matching the given predicate
 
+**Aggregation Predicates:**
+The aggregation operators support two types of predicates:
+
+1. **Property Comparisons** - Compare properties of list items:
+```text
+'property_match' order.items.any { type = 'restricted' } return block
+'bulk_items' order.items.any { quantity > 100 } return review
+```
+
+2. **Direct Value Comparisons** - Compare list items directly to values:
+```text
+'string_match' customer.tags.any {'blocked'} return block
+'numeric_match' user.scores.any {100} return high_score
+'boolean_match' user.flags.any {true} return has_flag
+```
+
 ### Returns and Tags
 #### Return States
 `allow`	The evaluation is not risky

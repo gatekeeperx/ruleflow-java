@@ -190,6 +190,37 @@ Used to work with lists, sets, and collections.
 'tuple_check' (user.country, user.state) in ('US', 'CA'), ('US', 'NY') return domestic
 ```
 
+#### Direct Value Comparisons in Aggregation Predicates
+The aggregation operators (`.any`, `.all`, `.none`) support two types of predicates:
+
+**1. Property Comparisons** - Compare properties of list items:
+```text
+'property_match' order.items.any { type = 'restricted' } return block
+'bulk_items' order.items.any { quantity > 100 } return review
+'verified_items' order.items.all { verified = true } return trusted
+```
+
+**2. Direct Value Comparisons** - Compare list items directly to values:
+```text
+'string_match' customer.tags.any {'blocked'} return block
+'numeric_match' user.scores.any {100} return high_score
+'boolean_match' user.flags.any {true} return has_flag
+'not_found' customer.tags.none {'premium'} return standard_user
+```
+
+**Data Structure Examples:**
+```json
+{
+  "customer": {
+    "tags": ["blocked", "risky", "verified"]
+  },
+  "user": {
+    "scores": [85, 100, 92],
+    "flags": [false, true, false]
+  }
+}
+```
+
 ### 5. Aggregation Operators
 Perform calculations on collections.
 
@@ -707,6 +738,54 @@ workflow 'ecommerce_risk'
     
     default return approve
 end
+```
+
+### Customer Tag and Score Analysis
+```text
+workflow 'customer_analysis'
+    ruleset 'tag_based_rules'
+        # Direct value comparisons with string lists
+        'blocked_customer' customer.tags.any {'blocked'} return block
+        'premium_customer' customer.tags.any {'premium'} return allow
+        'risky_customer' customer.tags.any {'risky', 'suspicious'} return review
+        
+        # Direct value comparisons with numeric lists
+        'high_score' user.scores.any {100} return excellent
+        'low_score' user.scores.all {score < 50} return poor_performance
+        
+        # Direct value comparisons with boolean lists
+        'has_flags' user.flags.any {true} return flagged
+        'no_flags' user.flags.none {true} return clean
+        
+        # Mixed property and direct value comparisons
+        'verified_items' order.items.all { verified = true } return trusted
+        'restricted_tags' customer.tags.any {'restricted'} return blocked
+    
+    ruleset 'score_analysis'
+        'average_score' user.scores.average {score} > 80 return high_performer
+        'score_count' user.scores.count() > 10 return frequent_user
+        
+    default return standard
+end
+```
+
+**Data Structure for Customer Analysis:**
+```json
+{
+  "customer": {
+    "tags": ["premium", "verified", "risky"]
+  },
+  "user": {
+    "scores": [85, 100, 92, 78],
+    "flags": [false, true, false, false]
+  },
+  "order": {
+    "items": [
+      {"verified": true, "price": 50},
+      {"verified": false, "price": 25}
+    ]
+  }
+}
 ```
 
 ---

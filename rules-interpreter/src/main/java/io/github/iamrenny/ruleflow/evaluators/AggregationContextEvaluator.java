@@ -106,6 +106,31 @@ public class AggregationContextEvaluator implements ContextEvaluator<RuleFlowLan
     }
 
     private Object evalPredicate(Object data, Object root, Map<String, List<?>> lists, RuleFlowLanguageParser.ExprContext ctx) {
-        return new Visitor((Map<String, Object>) data, lists, (Map<String, Object>) root).visit(ctx);
+        // Handle direct value comparisons in predicates
+        if (ctx instanceof RuleFlowLanguageParser.ValueContext) {
+            // For direct value comparisons like {'blocked'}, compare the list item directly with the predicate value
+            Object predicateValue = new Visitor((Map<String, Object>) root, lists, (Map<String, Object>) root).visit(ctx);
+            return compareValues(data, predicateValue);
+        } else {
+            // For property comparisons like { type = 'a' }, evaluate in the context of the list item
+            return new Visitor((Map<String, Object>) data, lists, (Map<String, Object>) root).visit(ctx);
+        }
+    }
+
+    private boolean compareValues(Object data, Object predicateValue) {
+        if (data == null && predicateValue == null) {
+            return true;
+        }
+        if (data == null || predicateValue == null) {
+            return false;
+        }
+        
+        // Handle numeric comparisons (Integer, Long, Double, etc.)
+        if (data instanceof Number && predicateValue instanceof Number) {
+            return ((Number) data).doubleValue() == ((Number) predicateValue).doubleValue();
+        }
+        
+        // Handle other types with standard equals
+        return data.equals(predicateValue);
     }
 }
