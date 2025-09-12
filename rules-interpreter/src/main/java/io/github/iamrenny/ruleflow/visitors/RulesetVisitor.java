@@ -111,19 +111,21 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
             }
         }
         if(!matchedRules.isEmpty()) {
-            return new WorkflowResult(
+            WorkflowResult result = new WorkflowResult(
                 ctx.workflow_name().getText().replace("'", ""),
                 matchedRules.get(0).getRuleSet(),
                 matchedRules.get(0).getRule(),
                 matchedRules.get(0).getResult(),
                 matchedRules.get(0).getActionsWithParams(),
+                matchedRules.get(0).getActionCalls(),
                 matchedRules.stream().map(it ->
                         new MatchedRuleListItem(it.getRuleSet(), it.getRule(),
-                            it.getResult(), it.getActions(), it.getActionsWithParams()))
+                            it.getResult(), it.getActions(), it.getActionsWithParams(), it.getActionCalls()))
                     .toList(),
                 warnings,
                 error
             );
+            return result;
         }
 
         return resolveDefaultResult(ctx, warnings, error,  visitor);
@@ -145,7 +147,7 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
 
         if (ctx.default_clause().return_result().expr() != null) {
             Object solvedExpr = evaluator.visit(ctx.default_clause().return_result().expr());
-            return new WorkflowResult(
+            WorkflowResult result = new WorkflowResult(
                 ctx.workflow_name().getText().replace("'", ""),
                 "default",
                 "default",
@@ -154,6 +156,8 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                 actionsMap,
                 error
             );
+            result.setActionCalls(actionsList);
+            return result;
         } else if (ctx.default_clause().return_result().state() != null) {
             return new WorkflowResult(
                 removeSingleQuote(ctx.workflow_name().getText()),
@@ -189,7 +193,8 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
             return result;
         } else {
             Pair<List<Action>, Map<String, Map<String, String>>> resolvedActions = resolveActions(rule.rule_body().actions());
-            result.setActionsWithParams(resolvedActions.getValue());
+            result.setActionCalls(resolvedActions.getKey(), false);
+            result.setActionsWithParams(resolvedActions.getValue(), false);
             return result;
         }
     }
@@ -197,9 +202,9 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
     private Pair<List<Action>, Map<String, Map<String, String>>> resolveActions(RuleFlowLanguageParser.ActionsContext rule) {
         Visitor visitor = new Visitor(data, lists, data);
         List<io.github.iamrenny.ruleflow.utils.Pair<String, Map<String, String>>> actions = new ActionsVisitor(visitor).visit(rule);
-        List<Action> actionsList = actions.stream().map(action -> new Action(action.getKey(), action.getValue())).collect(Collectors.toList());
+        List<Action> actionsList = actions.stream().map(action -> new Action(action.getKey(), new HashMap<>(action.getValue()))).collect(Collectors.toList());
         Map<String, Map<String, String>> actionsMap = actions.stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+            .collect(Collectors.toMap(Map.Entry::getKey, entry -> new HashMap<>(entry.getValue()),
                 (existing, replacement) -> {
                     existing.putAll(replacement); // merging the two maps
                     return existing;
