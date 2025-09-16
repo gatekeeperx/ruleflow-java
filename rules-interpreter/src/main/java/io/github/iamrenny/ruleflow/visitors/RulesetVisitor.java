@@ -192,9 +192,14 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
         if (rule.rule_body().actions() == null) {
             return result;
         } else {
-            Pair<List<Action>, Map<String, Map<String, String>>> resolvedActions = resolveActions(rule.rule_body().actions());
-            result.setActionCalls(resolvedActions.getKey(), false);
-            result.setActionsWithParams(resolvedActions.getValue(), false);
+            try {
+                Pair<List<Action>, Map<String, Map<String, String>>> resolvedActions = resolveActions(rule.rule_body().actions());
+                result.setActionCalls(resolvedActions.getKey(), false);
+                result.setActionsWithParams(resolvedActions.getValue(), false);
+            } catch (ActionParameterResolutionException ex) {
+                warnings.add(ex.getMessage());
+                // Return the result without actions - the rule still matches and returns its result
+            }
             return result;
         }
     }

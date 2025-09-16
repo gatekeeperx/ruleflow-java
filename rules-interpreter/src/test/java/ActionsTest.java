@@ -146,7 +146,7 @@ class ActionsTest {
     }
 
     @Test
-    public void given_action_with_nonexistent_property_in_params_should_fallback_to_default() {
+    public void given_action_with_nonexistent_property_in_params_should_return_matched_rule_with_warnings() {
         String workflow = """
             workflow 'test'
                 ruleset 'dummy'
@@ -161,9 +161,9 @@ class ActionsTest {
         
         // Verify that the workflow fell back to default due to the exception
         Assertions.assertEquals("test", result.getWorkflow());
-        Assertions.assertEquals("default", result.getRuleSet());
-        Assertions.assertEquals("default", result.getRule());
-        Assertions.assertEquals("allow", result.getResult());
+        Assertions.assertEquals("dummy", result.getRuleSet());
+        Assertions.assertEquals("rule_a", result.getRule());
+        Assertions.assertEquals("block", result.getResult());
         
         // Check that there are warnings about the failed property resolution
         Assertions.assertTrue(result.getWarnings().size() > 0, "Should have warnings about failed property resolution");
@@ -172,7 +172,30 @@ class ActionsTest {
         Assertions.assertTrue(hasActionParamWarning, "Should have warning about action parameter resolution failure");
     }
 
+    @Test
+    public void given_action_with_nonexistent_property_in_rule_should_return_default_with_warnings() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'rule_a' user_id = 15 return block with action('manual_review', {'test': 'me', 'key': non_existent_property})
+                default allow
+            end
+        """;
+        Map<String, Object> request = Map.of("not_user_id", 15);
 
+        // The exception should be caught and the workflow should fall back to default
+        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+
+        // Verify that the workflow fell back to default due to the exception
+        Assertions.assertEquals("test", result.getWorkflow());
+        Assertions.assertEquals("default", result.getRuleSet());
+        Assertions.assertEquals("default", result.getRule());
+        Assertions.assertEquals("allow", result.getResult());
+
+        // Check that there are warnings about the failed property resolution
+        Assertions.assertFalse(result.getWarnings().isEmpty(), "Should have warnings about failed property resolution");
+        Assertions.assertEquals("user_id field cannot be found", result.getWarnings().stream().findFirst().get());
+    }
 
     @Test
     public void given_action_with_empty_string_property_value_in_params_should_handle_gracefully() {
@@ -276,7 +299,7 @@ class ActionsTest {
     }
 
     @Test
-    public void given_action_with_runtime_exception_during_property_resolution_should_fallback_to_default() {
+    public void given_action_with_runtime_exception_during_property_resolution_in_action_should_return_the_rule() {
         String workflow = """
             workflow 'test'
                 ruleset 'dummy'
@@ -296,9 +319,9 @@ class ActionsTest {
         
         // Verify that the workflow fell back to default due to the runtime exception
         Assertions.assertEquals("test", result.getWorkflow());
-        Assertions.assertEquals("default", result.getRuleSet());
-        Assertions.assertEquals("default", result.getRule());
-        Assertions.assertEquals("allow", result.getResult());
+        Assertions.assertEquals("dummy", result.getRuleSet());
+        Assertions.assertEquals("rule_a", result.getRule());
+        Assertions.assertEquals("block", result.getResult());
         
         // Check that there are warnings about the runtime exception
         Assertions.assertTrue(result.getWarnings().size() > 0, "Should have warnings about runtime exception");
