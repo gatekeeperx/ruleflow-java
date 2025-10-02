@@ -4,6 +4,16 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.iamrenny.ruleflow/rules-interpreter.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.iamrenny.ruleflow/rules-interpreter)
 
 # Ruleflow Engine and DSL
+### Project move and license change
+- The repository has moved from `github.com/iamrenny/ruleflow` to `github.com/gatekeeperx/ruleflow`. Huge thanks to **gatekeeperx** for supporting and stewarding the project.
+- Next steps for users:
+  - Update any bookmarks and Git remotes to point to `https://github.com/gatekeeperx/ruleflow`.
+  - Open new issues and pull requests in the new repository.
+  - Existing Maven coordinates remain the same for now. If coordinates change in the future, we will announce it in releases and this README.
+  - Consider watching and starring the new repository to keep receiving updates.
+
+The project license has changed from Apache 2.0 to MIT. See the updated `LICENSE` file for details.
+
 This project provides a rule-based workflow engine with a custom Domain-Specific Language (DSL) for risk evaluation. The DSL supports defining workflows, rulesets, and complex conditions with various operators to evaluate risk and determine actions. Key features include support for mathematical, logical, list, date, and aggregate operators, along with customizable return states, tags, and actions to control behavior based on evaluation outcomes.
 
 ## Latest Release

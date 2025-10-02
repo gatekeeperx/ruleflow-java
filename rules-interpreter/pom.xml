@@ -12,11 +12,11 @@
     <artifactId>rules-interpreter</artifactId>
     <packaging>jar</packaging>
 
-    <url>https://github.com/iamrenny/ruleflow</url>
+    <url>https://github.com/gatekeeperx/ruleflow</url>
     <scm>
-        <url>https://github.com/iamrenny/ruleflow</url>
-        <connection>scm:git:git://github.com/iamrenny/ruleflow.git</connection>
-        <developerConnection>scm:git:ssh://github.com/iamrenny/ruleflow.git</developerConnection>
+        <url>https://github.com/gatekeeperx/ruleflow</url>
+        <connection>scm:git:git://github.com/gatekeeperx/ruleflow.git</connection>
+        <developerConnection>scm:git:ssh://github.com/gatekeeperx/ruleflow.git</developerConnection>
     </scm>
     <developers>
         <developer>
@@ -26,8 +26,8 @@
     </developers>
     <licenses>
         <license>
-            <name>The Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
