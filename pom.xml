@@ -5,7 +5,7 @@
     <groupId>io.github.iamrenny.ruleflow</groupId>
     <artifactId>ruleflow</artifactId>
     <name>ruleflow</name>
-    <version>0.9.1</version>
+    <version>0.9.2</version>
     <packaging>pom</packaging>
 
     <modules>
