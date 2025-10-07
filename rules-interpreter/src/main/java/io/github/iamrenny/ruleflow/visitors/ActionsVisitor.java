@@ -1,8 +1,8 @@
-package io.github.iamrenny.ruleflow.visitors;
+package com.gatekeeperx.ruleflow.visitors;
 
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser;
-import io.github.iamrenny.ruleflow.utils.Pair;
-import io.github.iamrenny.ruleflow.errors.ActionParameterResolutionException;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
+import com.gatekeeperx.ruleflow.utils.Pair;
+import com.gatekeeperx.ruleflow.errors.ActionParameterResolutionException;
 
 import java.util.List;
 import java.util.Map;

@@ -1,5 +1,5 @@
-import io.github.iamrenny.ruleflow.vo.WorkflowResult;
-import io.github.iamrenny.ruleflow.vo.Action;
+import com.gatekeeperx.ruleflow.vo.WorkflowResult;
+import com.gatekeeperx.ruleflow.vo.Action;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +18,7 @@ class ActionCallsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         
         List<Action> actionCalls = result.getActionCalls();
         Assertions.assertEquals(2, actionCalls.size());
@@ -40,7 +40,7 @@ class ActionCallsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         
         List<Action> actionCalls = result.getActionCalls();
         Assertions.assertEquals(2, actionCalls.size());
@@ -58,7 +58,7 @@ class ActionCallsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
 
         List<Action> actionCalls = result.getActionCalls();
         Assertions.assertEquals(2, actionCalls.size());
@@ -80,7 +80,7 @@ class ActionCallsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
 
         List<Action> actionCalls = result.getActionCalls();
         Assertions.assertEquals(2, actionCalls.size());

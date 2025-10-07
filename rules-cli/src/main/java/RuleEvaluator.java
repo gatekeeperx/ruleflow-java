@@ -1,6 +1,6 @@
-import io.github.iamrenny.ruleflow.visitors.Visitor;
-import io.github.iamrenny.ruleflow.RuleFlowLanguageLexer;
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser;
+import com.gatekeeperx.ruleflow.visitors.Visitor;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageLexer;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;

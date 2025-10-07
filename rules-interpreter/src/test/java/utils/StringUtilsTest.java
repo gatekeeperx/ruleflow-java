@@ -1,6 +1,6 @@
 package utils;
 
-import io.github.iamrenny.ruleflow.utils.StringUtils;
+import com.gatekeeperx.ruleflow.utils.StringUtils;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 

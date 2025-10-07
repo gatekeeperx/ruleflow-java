@@ -1,5 +1,5 @@
-import io.github.iamrenny.ruleflow.Workflow;
-import io.github.iamrenny.ruleflow.vo.WorkflowResult;
+import com.gatekeeperx.ruleflow.Workflow;
+import com.gatekeeperx.ruleflow.vo.WorkflowResult;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

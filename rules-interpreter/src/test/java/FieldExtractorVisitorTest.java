@@ -1,9 +1,9 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.github.iamrenny.ruleflow.RuleFlowLanguageLexer;
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser;
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser.ParseContext;
-import io.github.iamrenny.ruleflow.visitors.FieldExtractorVisitor;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageLexer;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser.ParseContext;
+import com.gatekeeperx.ruleflow.visitors.FieldExtractorVisitor;
 import java.util.Set;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;

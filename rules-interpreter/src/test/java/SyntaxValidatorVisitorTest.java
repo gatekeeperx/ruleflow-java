@@ -1,4 +1,4 @@
-import static io.github.iamrenny.ruleflow.visitors.SyntaxValidatorVisitor.validate;
+import static com.gatekeeperx.ruleflow.visitors.SyntaxValidatorVisitor.validate;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

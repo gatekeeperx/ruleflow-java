@@ -1,9 +1,9 @@
-package io.github.iamrenny.ruleflow.evaluators;
+package com.gatekeeperx.ruleflow.evaluators;
 
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser.PropertyTupleContext;
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser.ValidPropertyContext;
-import io.github.iamrenny.ruleflow.errors.PropertyNotFoundException;
-import io.github.iamrenny.ruleflow.visitors.Visitor;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser.PropertyTupleContext;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser.ValidPropertyContext;
+import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
+import com.gatekeeperx.ruleflow.visitors.Visitor;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;

@@ -1,4 +1,4 @@
-import io.github.iamrenny.ruleflow.vo.WorkflowResult;
+import com.gatekeeperx.ruleflow.vo.WorkflowResult;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +16,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         WorkflowResult expectedResult = new WorkflowResult(
             "test", "dummy", "rule_a", "block",
             Map.of("manual_review", Map.of())
@@ -34,7 +34,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         WorkflowResult expectedResult = new WorkflowResult(
             "test", "dummy", "rule_a", "block",
             Map.of("manual_review", Map.of())
@@ -52,7 +52,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         WorkflowResult expectedResult = new WorkflowResult(
             "test", "dummy", "rule_a", "block",
             Map.of("manual_review", Map.of())
@@ -70,7 +70,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         WorkflowResult expectedResult = new WorkflowResult(
             "test", "dummy", "rule_a", "block",
             Map.of("manual_review", Map.of(), "logout_user", Map.of())
@@ -88,7 +88,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         WorkflowResult expectedResult = new WorkflowResult(
             "test", "dummy", "rule_a", "block",
             Map.of(
@@ -109,7 +109,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         WorkflowResult expectedResult = new WorkflowResult(
             "test", "dummy", "rule_a", "block",
             Map.of("manual_review", Map.of("test", "me", "foo", "bar"))
@@ -127,7 +127,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         
         // Explicit assertions to clearly state what we want to test and expect
         Assertions.assertEquals("test", result.getWorkflow(), "Workflow name should match");
@@ -157,7 +157,7 @@ class ActionsTest {
         Map<String, Object> request = Map.of("user_id", 15);
         
         // The exception should be caught and the workflow should fall back to default
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         
         // Verify that the workflow fell back to default due to the exception
         Assertions.assertEquals("test", result.getWorkflow());
@@ -184,7 +184,7 @@ class ActionsTest {
         Map<String, Object> request = Map.of("not_user_id", 15);
 
         // The exception should be caught and the workflow should fall back to default
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
 
         // Verify that the workflow fell back to default due to the exception
         Assertions.assertEquals("test", result.getWorkflow());
@@ -207,7 +207,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15, "empty_property", "");
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         
         // Verify that empty string values are handled gracefully
         Assertions.assertEquals("test", result.getWorkflow());
@@ -231,7 +231,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15, "numeric_property", 42);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         
         // Verify that numeric values are handled gracefully
         Assertions.assertEquals("test", result.getWorkflow());
@@ -255,7 +255,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15, "boolean_property", true);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         
         // Verify that boolean values are handled gracefully
         Assertions.assertEquals("test", result.getWorkflow());
@@ -284,7 +284,7 @@ class ActionsTest {
                 return "complex_object";
             }
         });
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         
         // Verify that complex object values are handled gracefully
         Assertions.assertEquals("test", result.getWorkflow());
@@ -315,7 +315,7 @@ class ActionsTest {
         });
         
         // The runtime exception should be caught and the workflow should fall back to default
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         
         // Verify that the workflow fell back to default due to the runtime exception
         Assertions.assertEquals("test", result.getWorkflow());
@@ -340,7 +340,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         WorkflowResult expectedResult = new WorkflowResult(
             "test", "dummy", "rule_a", "block",
             Map.of("manual_review", Map.of("test", "me", "foo", "bar"))
@@ -358,7 +358,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         WorkflowResult expectedResult = new WorkflowResult(
             "test", "dummy", "rule_a", "block",
             Map.of(
@@ -379,7 +379,7 @@ class ActionsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         WorkflowResult expectedResult = new WorkflowResult(
             "test", "dummy", "rule_a", "block",
             Map.of("apply_restriction", Map.of("responsible", "homer", "test", "me", "foo", "bar"))

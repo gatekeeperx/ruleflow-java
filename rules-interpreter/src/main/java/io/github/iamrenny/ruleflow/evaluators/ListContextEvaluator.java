@@ -1,10 +1,10 @@
-package io.github.iamrenny.ruleflow.evaluators;
+package com.gatekeeperx.ruleflow.evaluators;
 
-import io.github.iamrenny.ruleflow.RuleFlowLanguageLexer;
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser;
-import io.github.iamrenny.ruleflow.errors.PropertyNotFoundException;
-import io.github.iamrenny.ruleflow.errors.UnexpectedSymbolException;
-import io.github.iamrenny.ruleflow.visitors.Visitor;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageLexer;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
+import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
+import com.gatekeeperx.ruleflow.errors.UnexpectedSymbolException;
+import com.gatekeeperx.ruleflow.visitors.Visitor;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;

@@ -1,7 +1,7 @@
-package io.github.iamrenny.ruleflow.visitors;
+package com.gatekeeperx.ruleflow.visitors;
 
-import io.github.iamrenny.ruleflow.RuleFlowLanguageBaseVisitor;
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageBaseVisitor;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
 import java.util.HashSet;
 import java.util.Set;
 

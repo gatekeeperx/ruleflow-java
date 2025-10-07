@@ -1,9 +1,9 @@
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.iamrenny.ruleflow.listeners.ErrorListener;
-import io.github.iamrenny.ruleflow.RuleFlowLanguageLexer;
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser;
-import io.github.iamrenny.ruleflow.visitors.RulesetVisitor;
+import com.gatekeeperx.ruleflow.listeners.ErrorListener;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageLexer;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
+import com.gatekeeperx.ruleflow.visitors.RulesetVisitor;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;

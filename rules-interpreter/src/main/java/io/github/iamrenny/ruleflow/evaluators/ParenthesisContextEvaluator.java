@@ -1,7 +1,7 @@
-package io.github.iamrenny.ruleflow.evaluators;
+package com.gatekeeperx.ruleflow.evaluators;
 
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser.ParenthesisContext;
-import io.github.iamrenny.ruleflow.visitors.Visitor;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser.ParenthesisContext;
+import com.gatekeeperx.ruleflow.visitors.Visitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

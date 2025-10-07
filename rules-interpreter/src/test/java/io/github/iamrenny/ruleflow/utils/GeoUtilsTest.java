@@ -1,4 +1,4 @@
-package io.github.iamrenny.ruleflow.utils;
+package com.gatekeeperx.ruleflow.utils;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;

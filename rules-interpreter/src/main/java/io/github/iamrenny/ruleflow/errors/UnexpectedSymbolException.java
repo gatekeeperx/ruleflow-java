@@ -1,4 +1,4 @@
-package io.github.iamrenny.ruleflow.errors;
+package com.gatekeeperx.ruleflow.errors;
 
 public class UnexpectedSymbolException extends RuntimeException {
 

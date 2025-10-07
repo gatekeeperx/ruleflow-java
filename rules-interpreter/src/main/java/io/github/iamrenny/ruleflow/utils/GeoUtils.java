@@ -1,4 +1,4 @@
-package io.github.iamrenny.ruleflow.utils;
+package com.gatekeeperx.ruleflow.utils;
 
 /**
  * Utility methods for geohash encoding/decoding and location calculations.

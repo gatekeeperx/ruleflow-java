@@ -1,8 +1,8 @@
-package io.github.iamrenny.ruleflow.evaluators;
+package com.gatekeeperx.ruleflow.evaluators;
 
-import io.github.iamrenny.ruleflow.errors.PropertyNotFoundException;
-import io.github.iamrenny.ruleflow.errors.UnexpectedSymbolException;
-import io.github.iamrenny.ruleflow.visitors.Visitor;
+import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
+import com.gatekeeperx.ruleflow.errors.UnexpectedSymbolException;
+import com.gatekeeperx.ruleflow.visitors.Visitor;
 import org.antlr.v4.runtime.ParserRuleContext;
 
 /**

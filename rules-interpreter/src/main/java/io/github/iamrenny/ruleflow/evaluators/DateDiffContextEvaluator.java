@@ -1,8 +1,8 @@
-package io.github.iamrenny.ruleflow.evaluators;
+package com.gatekeeperx.ruleflow.evaluators;
 
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser;
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser.DateDiffContext;
-import io.github.iamrenny.ruleflow.visitors.Visitor;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser.DateDiffContext;
+import com.gatekeeperx.ruleflow.visitors.Visitor;
 
 import java.time.Duration;
 import java.time.LocalDateTime;

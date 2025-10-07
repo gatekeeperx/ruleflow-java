@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.github.iamrenny.ruleflow</groupId>
+        <groupId>com.gatekeeperx.ruleflow</groupId>
         <artifactId>ruleflow</artifactId>
         <version>0.9.2</version>
     </parent>
@@ -57,7 +57,7 @@
             <version>${slf4j.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.github.iamrenny.ruleflow</groupId>
+            <groupId>com.gatekeeperx.ruleflow</groupId>
             <artifactId>rules-interpreter</artifactId>
             <version>0.0.1</version>
         </dependency>

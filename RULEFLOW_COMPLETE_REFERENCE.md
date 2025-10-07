@@ -45,8 +45,8 @@ end
 
 ### Java Usage
 ```java
-import io.github.iamrenny.ruleflow.Workflow;
-import io.github.iamrenny.ruleflow.vo.WorkflowResult;
+import com.gatekeeperx.ruleflow.Workflow;
+import com.gatekeeperx.ruleflow.vo.WorkflowResult;
 
 Workflow wf = new Workflow(workflowString);
 WorkflowResult result = wf.evaluate(Map.of("amount", 1500, "country", "US"));

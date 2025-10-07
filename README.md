@@ -1,7 +1,7 @@
 ![tag jdk17](https://img.shields.io/badge/tag-jdk17-orange.svg)
 ![technology Maven](https://img.shields.io/badge/technology-Maven-blue.svg)
 ![technology ANTLR4](https://img.shields.io/badge/technology-ANTLR4-red.svg)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.iamrenny.ruleflow/rules-interpreter.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.iamrenny.ruleflow/rules-interpreter)
+[![Maven Central](https://img.shields.io/maven-central/v/com.gatekeeperx.ruleflow/rules-interpreter.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.gatekeeperx.ruleflow/rules-interpreter)
 
 # Ruleflow Engine and DSL
 ### Project move and license change
@@ -29,7 +29,7 @@ Maven or Gradle
 To use Ruleflow in your Maven project, add the following dependency to your pom.xml:
 ```xml
 <dependency>
-  <groupId>io.github.iamrenny.ruleflow</groupId>
+  <groupId>com.gatekeeperx.ruleflow</groupId>
   <artifactId>rules-interpreter</artifactId>
   <version>latest</version>
 </dependency>
@@ -39,7 +39,7 @@ To use Ruleflow in your Maven project, add the following dependency to your pom.
 For Gradle users, add the following to your build.gradle:
 
 ```
-implementation 'io.github.iamrenny.ruleflow:rules-interpreter:0.0.1'
+implementation 'com.gatekeeperx.ruleflow:rules-interpreter:0.0.1'
 ```
 
 ## Usage
@@ -54,8 +54,8 @@ Create a workflow with rules using the `Workflow` class.
 ```java
 package com.example;
 
-import io.github.iamrenny.ruleflow.Workflow;
-import io.github.iamrenny.ruleflow.vo.WorkflowResult;
+import com.gatekeeperx.ruleflow.Workflow;
+import com.gatekeeperx.ruleflow.vo.WorkflowResult;
 
 import java.util.Map;
 

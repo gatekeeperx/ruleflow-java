@@ -1,7 +1,7 @@
-package io.github.iamrenny.ruleflow.visitors;
+package com.gatekeeperx.ruleflow.visitors;
 
-import io.github.iamrenny.ruleflow.RuleFlowLanguageLexer;
-import io.github.iamrenny.ruleflow.RuleFlowLanguageParser;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageLexer;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
 import java.util.ArrayList;
 import java.util.List;
 import org.antlr.v4.runtime.BaseErrorListener;

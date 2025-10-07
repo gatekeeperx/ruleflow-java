@@ -1,4 +1,4 @@
-package io.github.iamrenny.ruleflow.utils;
+package com.gatekeeperx.ruleflow.utils;
 
 import java.util.Map;
 import java.util.Objects;
