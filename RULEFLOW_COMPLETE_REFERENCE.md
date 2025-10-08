@@ -46,7 +46,7 @@ end
 ### Java Usage
 ```java
 import com.gatekeeperx.ruleflow.Workflow;
-import com.gatekeeperx.ruleflow.vo.WorkflowResult;
+import vo.com.gatekeeperx.ruleflow.WorkflowResult;
 
 Workflow wf = new Workflow(workflowString);
 WorkflowResult result = wf.evaluate(Map.of("amount", 1500, "country", "US"));

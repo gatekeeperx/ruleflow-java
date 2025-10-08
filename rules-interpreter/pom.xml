@@ -181,9 +181,9 @@
                         </goals>
                         <configuration>
                             <excludes>
-                                <exclude>com/iamrenny/ruleflow/config/**</exclude>
-                                <exclude>com/iamrenny/ruleflow/vo/**</exclude>
-                                <exclude>com/iamrenny/ruleflow/errors/**</exclude>
+                                <exclude>com/gatekeeperx/ruleflow/config/**</exclude>
+                                <exclude>com/gatekeeperx/ruleflow/vo/**</exclude>
+                                <exclude>com/gatekeeperx/ruleflow/errors/**</exclude>
                             </excludes>
                         </configuration>
                     </execution>

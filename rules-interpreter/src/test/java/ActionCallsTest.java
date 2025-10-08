@@ -105,7 +105,7 @@ class ActionCallsTest {
             end
         """;
         Map<String, Object> request = Map.of("user_id", 15);
-        WorkflowResult result = new io.github.iamrenny.ruleflow.Workflow(workflow).evaluate(request);
+        WorkflowResult result = new com.gatekeeperx.ruleflow.Workflow(workflow).evaluate(request);
         
         // Verify main result has actionCalls from first matched rule only
         Assertions.assertEquals(1, result.getActionCalls().size());

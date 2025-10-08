@@ -1,7 +1,6 @@
 package com.gatekeeperx.ruleflow.evaluators;
 
 import com.gatekeeperx.ruleflow.visitors.Visitor;
-import com.gatekeeperx.ruleflow.utils.DateTimeUtils;
 import java.time.ZonedDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

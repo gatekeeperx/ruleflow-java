@@ -55,7 +55,7 @@ Create a workflow with rules using the `Workflow` class.
 package com.example;
 
 import com.gatekeeperx.ruleflow.Workflow;
-import com.gatekeeperx.ruleflow.vo.WorkflowResult;
+import vo.com.gatekeeperx.ruleflow.WorkflowResult;
 
 import java.util.Map;
 

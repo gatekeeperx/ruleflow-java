@@ -1,6 +1,6 @@
 @Library('devops-pipelines-libraries') _
 
-def flow = new io.github.iamrenny.util();
+def flow = new com.gatekeeperx.util();
 
 pipeline {
     agent { node { label '!master' } }

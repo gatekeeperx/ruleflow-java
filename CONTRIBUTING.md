@@ -8,7 +8,7 @@ We welcome contributions to **Ruleflow**! Whether it's fixing a bug, adding a fe
 ## How to Contribute
 
 ### 1. Reporting Issues
-If you find a bug or have a feature request, please [open an issue](https://github.com/iamrenny/ruleflow/issues) on GitHub. Be sure to include:
+If you find a bug or have a feature request, please [open an issue](https://github.com/gatekeeperx/ruleflow/issues) on GitHub. Be sure to include:
 - A clear description of the problem or feature.
 - Steps to reproduce the issue (if it's a bug).
 - Any relevant logs, screenshots, or other supporting information.
@@ -72,7 +72,7 @@ Please follow our [Code of Conduct](CODE_OF_CONDUCT.md) to ensure a welcoming an
 ## Need Help?
 
 If you have any questions or need assistance, feel free to:
-- Open a [discussion](https://github.com/iamrenny/ruleflow/discussions).
+- Open a [discussion](https://github.com/gatekeeperx/ruleflow/discussions).
 - Reach out to the project maintainers.
 
 ---

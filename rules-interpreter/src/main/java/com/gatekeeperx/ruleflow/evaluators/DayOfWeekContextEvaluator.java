@@ -6,7 +6,6 @@ import com.gatekeeperx.ruleflow.visitors.Visitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 public class DayOfWeekContextEvaluator implements ContextEvaluator<RuleFlowLanguageParser.DayOfWeekContext> {

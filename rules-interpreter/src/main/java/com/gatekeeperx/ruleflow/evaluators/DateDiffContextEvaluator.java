@@ -5,7 +5,6 @@ import com.gatekeeperx.ruleflow.RuleFlowLanguageParser.DateDiffContext;
 import com.gatekeeperx.ruleflow.visitors.Visitor;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import org.slf4j.Logger;
