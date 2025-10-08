@@ -1,0 +1,39 @@
+name: Publish Maven Package
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+
+      - name: Configure Maven settings
+        run: |
+          mkdir -p ~/.m2
+          echo "<settings>
+            <servers>
+              <server>
+                <id>central</id>
+                <username>${{secrets.NEXUS_CENTRAL_USERNAME}}</username>
+                <password>${{secrets.NEXUS_CENTRAL_PASSWORD}}</password>
+              </server>
+              <server>
+                <id>gpg.passphrase</id>
+                <passphrase>${{secrets.GPG_PASSPHRASE}}</passphrase>
+              </server>
+            </servers>
+          </settings>" > ~/.m2/settings.xml
+
+      - name: Build and publish to GitHub Packages
+        run: mvn clean deploy -DskipTests
