@@ -5,9 +5,9 @@
 
 # Ruleflow Engine and DSL
 ### Project move and license change
-- The repository has moved from `github.com/iamrenny/ruleflow` to `github.com/gatekeeperx/ruleflow`. Huge thanks to **gatekeeperx** for supporting and stewarding the project.
+- The repository has moved from `github.com/iamrenny/ruleflow` to `github.com/gatekeeperx/ruleflow-java`. Huge thanks to **gatekeeperx** for supporting and stewarding the project.
 - Next steps for users:
-  - Update any bookmarks and Git remotes to point to `https://github.com/gatekeeperx/ruleflow`.
+  - Update any bookmarks and Git remotes to point to `https://github.com/gatekeeperx/ruleflow-java`.
   - Open new issues and pull requests in the new repository.
   - Existing Maven coordinates remain the same for now. If coordinates change in the future, we will announce it in releases and this README.
   - Consider watching and starring the new repository to keep receiving updates.
@@ -29,8 +29,8 @@ Maven or Gradle
 To use Ruleflow in your Maven project, add the following dependency to your pom.xml:
 ```xml
 <dependency>
-  <groupId>com.gatekeeperx.ruleflow</groupId>
-  <artifactId>rules-interpreter</artifactId>
+  <groupId>com.gatekeeperx</groupId>
+  <artifactId>ruleflow</artifactId>
   <version>latest</version>
 </dependency>
 ```
