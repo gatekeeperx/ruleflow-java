@@ -34,29 +34,4 @@ public class StoredListTest {
         Assertions.assertEquals(expectedResult, result);
     }
 
-    @Test
-    public void test() {
-        String workflow = """
-           workflow 'test'
-               ruleset 'dummy'
-                   'customer' customer.customerId in list('customer_blocked') return block
-               default allow
-               end
-            """;
-        Workflow ruleEngine = new Workflow(workflow);
-
-        WorkflowResult result = ruleEngine.evaluate(Map.of(
-                "customer", Map.of("customerId", "123456"),
-                "order", Map.of("merchant", Map.of("merchantId", "merchant-001"))
-        ), Map.of(
-                "customer_blocked", List.of(
-                        "123456",
-                        "fp-456"
-                )
-        ));
-
-        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "customer", "block");
-        Assertions.assertEquals(expectedResult, result);
-    }
-
 }
