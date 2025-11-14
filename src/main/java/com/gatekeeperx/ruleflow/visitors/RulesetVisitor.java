@@ -5,6 +5,7 @@ import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
 import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
 import com.gatekeeperx.ruleflow.errors.UnexpectedSymbolException;
 import com.gatekeeperx.ruleflow.errors.ActionParameterResolutionException;
+import com.gatekeeperx.ruleflow.errors.TypeComparisonException;
 import com.gatekeeperx.ruleflow.utils.Pair;
 import com.gatekeeperx.ruleflow.vo.Action;
 import com.gatekeeperx.ruleflow.vo.WorkflowResult;
@@ -64,6 +65,11 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                         logger.warn("Action parameter resolution failed in ruleset condition: {} {}", ctx.workflow_name().getText(), ruleSet.name().getText(), ex);
                         warnings.add(ex.getCause().getMessage());
                         continue;
+                    } else if ((ex instanceof TypeComparisonException) || (ex.getCause() != null && ex.getCause() instanceof TypeComparisonException)) {
+                        String rulesetName = removeSingleQuote(ruleSet.name().getText());
+                        logger.warn("Type comparison error in ruleset condition {} {}", ctx.workflow_name().getText(), rulesetName, ex);
+                        warnings.add("There is a comparison between different dataTypes in ruleset " + rulesetName);
+                        continue;
                     } else {
                         logger.error("Error while evaluating ruleset condition {} {}",
                             ctx.workflow_name().getText(), ruleSet.name().getText(), ex);
@@ -100,6 +106,10 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                     } else if (ex.getCause() != null && ex.getCause() instanceof ActionParameterResolutionException) {
                         logger.warn("Action parameter resolution failed: {} {}", ctx.workflow_name().getText(), rule.name().getText(), ex);
                         warnings.add(ex.getCause().getMessage());
+                    } else if ((ex instanceof TypeComparisonException) || (ex.getCause() != null && ex.getCause() instanceof TypeComparisonException)) {
+                        String ruleName = removeSingleQuote(rule.name().getText());
+                        logger.warn("Type comparison error in rule {} {}", ctx.workflow_name().getText(), ruleName, ex);
+                        warnings.add("There is a comparison between different dataTypes in rule " + ruleName);
                     } else {
                         logger.error("Error while evaluating rule {} {}",
                             ctx.workflow_name().getText(), rule.name().getText(), ex);

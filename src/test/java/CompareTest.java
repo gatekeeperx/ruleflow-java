@@ -3,6 +3,7 @@ import com.gatekeeperx.ruleflow.vo.WorkflowResult;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 class CompareTest {
@@ -107,5 +108,29 @@ class CompareTest {
         WorkflowResult result = ruleEngine.evaluate(Map.of("x", "2024-06-01T12:30Z"));
 
         Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenComparisonBetweenStringAndStringUsingContainsMustFail() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'comparison' x = 'some_string' return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult result = ruleEngine.evaluate(Map.of("x", List.of("mystring")));
+
+        // Should return default result since the rule fails due to type mismatch
+        Assertions.assertEquals("allow", result.getResult());
+        Assertions.assertEquals("default", result.getRule());
+        
+        // Should have a warning about type comparison error
+        Assertions.assertFalse(result.getWarnings().isEmpty(), "Should have warnings about type comparison");
+        Assertions.assertTrue(result.getWarnings().stream()
+            .anyMatch(warning -> warning.equals("There is a comparison between different dataTypes in rule comparison")),
+            "Should contain warning about type comparison in rule 'comparison'");
     }
 }
