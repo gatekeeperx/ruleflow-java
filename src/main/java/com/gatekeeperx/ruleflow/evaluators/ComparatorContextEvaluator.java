@@ -2,6 +2,7 @@ package com.gatekeeperx.ruleflow.evaluators;
 
 import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
 import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
+import com.gatekeeperx.ruleflow.errors.TypeComparisonException;
 import com.gatekeeperx.ruleflow.visitors.Visitor;
 import org.antlr.v4.runtime.Token;
 import org.slf4j.Logger;
@@ -29,7 +30,7 @@ public class ComparatorContextEvaluator implements ContextEvaluator<RuleFlowLang
         } else if (left instanceof Comparable<?> && right instanceof Comparable<?>) {
             result = compareComparables(ctx.op, (Comparable<?>) left, (Comparable<?>) right);
         } else {
-            throw new IllegalArgumentException("Comparisons between " + left.getClass() + " and " + right.getClass() + " not supported");
+            throw new TypeComparisonException("Comparisons between different dataTypes not supported");
         }
 
         logger.debug("Comparator: left={}, right={}, op={}, result={}", left, right, ctx.op.getText(), result);
