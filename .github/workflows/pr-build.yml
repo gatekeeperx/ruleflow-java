@@ -3,7 +3,7 @@ name: PR Build
 on:
   pull_request:
     branches:
-      - main  # adjust if your default branch is different
+      - master  # adjust if your default branch is different
 
 jobs:
   build:
