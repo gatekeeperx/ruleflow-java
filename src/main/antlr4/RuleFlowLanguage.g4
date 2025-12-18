@@ -60,6 +60,7 @@ expr: L_PAREN expr R_PAREN                                                      
     | dateExpr                                                                  #dateOperation
     | op = REGEX_STRIP L_PAREN value = validProperty COMMA regex = SQUOTA_STRING R_PAREN                       #regexlike
     | op=ABS L_PAREN left=expr R_PAREN                                          #unary
+    | op=K_EVAL_IN_LIST L_PAREN listName=string_literal COMMA predicate=expr R_PAREN   #evalInList
     | left=expr op=K_AND right=expr                                             #binaryAnd
     | left=expr op=K_OR right=expr                                              #binaryOr
     | dateParse #dateParseExpr
@@ -109,8 +110,8 @@ dateValue: string_literal | validProperty | K_NOW L_PAREN R_PAREN;
 
 timeUnit: DAY | HOUR | MINUTE;
 
-validProperty: root=DOT? property=ID
-             | root=DOT? nestedProperty=ID (DOT ID)+;
+validProperty: root=DOT? property=(ID | K_ELEM)
+             | root=DOT? nestedProperty=(ID | K_ELEM) (DOT (ID | K_ELEM))+;
 
 DOT: '.';
 COMMA: ',';
@@ -136,6 +137,8 @@ REGEX_STRIP: 'regex_strip' | 'regexStrip' | 'regexstrip';
 MODULO: '%' | 'mod';
 K_STARTS_WITH: 'starts_with' | 'startswith' | 'startsWith';
 K_LIST: 'list';
+K_ELEM: 'elem';
+K_EVAL_IN_LIST: 'evalInList' | 'evalinlist' | 'eval_in_list';
 L_BRACE: '{';
 R_BRACE: '}';
 L_PAREN: '(';

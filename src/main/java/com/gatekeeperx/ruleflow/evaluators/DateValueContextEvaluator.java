@@ -17,8 +17,7 @@ public class DateValueContextEvaluator implements ContextEvaluator<DateValueCont
             logger.debug("DateValue: {}", zonedDateTime);
             return zonedDateTime;
         } else if(ctx.validProperty() != null) {
-            String value = (String) new ValidPropertyContextEvaluator().evaluate(
-                ctx.validProperty(), visitor);
+            Object value = visitor.visit(ctx.validProperty());
             ZonedDateTime zonedDateTime = DateTimeUtils.toZonedDateTime(value);
             logger.debug("DateValue: {}", zonedDateTime);
             return zonedDateTime;

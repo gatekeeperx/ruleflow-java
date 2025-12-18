@@ -18,7 +18,8 @@ public class ValidPropertyContextEvaluator implements ContextEvaluator<ValidProp
         logger.debug("ValidProperty: property={}, result={}", property, result);
         if (ctx.property != null) {
             if (result == null) {
-                throw new PropertyNotFoundException(ctx.ID(0).getText() + " field cannot be found");
+                String fieldName = getFirstTokenText(ctx);
+                throw new PropertyNotFoundException(fieldName + " field cannot be found");
             }
             return result;
         } else if (ctx.nestedProperty != null) {
@@ -29,9 +30,31 @@ public class ValidPropertyContextEvaluator implements ContextEvaluator<ValidProp
         }
     }
 
+    private String getFirstTokenText(ValidPropertyContext ctx) {
+        if (ctx.K_ELEM().size() > 0) {
+            return ctx.K_ELEM(0).getText();
+        } else if (ctx.ID().size() > 0) {
+            return ctx.ID(0).getText();
+        }
+        return "";
+    }
+
     @SuppressWarnings("unchecked")
     private Object getNestedValue(ValidPropertyContext ctx, Map<String, ?> data) throws PropertyNotFoundException {
         Map<String, ?> currentData = data;
+        // Process all tokens (both K_ELEM and ID) in order
+        for (int i = 0; i < ctx.K_ELEM().size(); i++) {
+            String tokenText = ctx.K_ELEM(i).getText();
+            Object value = currentData.get(tokenText);
+            if (value instanceof Map<?, ?>) {
+                currentData = (Map<String, ?>) value;
+            } else {
+                if (value == null) {
+                    throw new PropertyNotFoundException(tokenText + " field cannot be found");
+                }
+                return value;
+            }
+        }
         for (var id : ctx.ID()) {
             Object value = currentData.get(id.getText());
             if (value instanceof Map<?, ?>) {
