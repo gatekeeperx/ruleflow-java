@@ -1,11 +1,11 @@
 ![tag jdk17](https://img.shields.io/badge/tag-jdk17-orange.svg)
 ![technology Maven](https://img.shields.io/badge/technology-Maven-blue.svg)
 ![technology ANTLR4](https://img.shields.io/badge/technology-ANTLR4-red.svg)
-[![Maven Central](https://img.shields.io/maven-central/v/com.gatekeeperx.ruleflow/rules-interpreter.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.gatekeeperx.ruleflow/rules-interpreter)
+[![Maven Central](https://img.shields.io/maven-central/v/com.gatekeeperx.ruleflow/ruleflow.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.gatekeeperx.ruleflow/rules-interpreter)
 
 # Ruleflow Engine and DSL
 ### Project move and license change
-- The repository has moved from `github.com/iamrenny/ruleflow` to `github.com/gatekeeperx/ruleflow-java`. Huge thanks to **gatekeeperx** for supporting and stewarding the project.
+- The repository has moved from `github.com/iamrenny/ruleflow` to `github.com/gatekeeperx/ruleflow`. Huge thanks to **gatekeeperx** for supporting and stewarding the project.
 - Next steps for users:
   - Update any bookmarks and Git remotes to point to `https://github.com/gatekeeperx/ruleflow-java`.
   - Open new issues and pull requests in the new repository.
