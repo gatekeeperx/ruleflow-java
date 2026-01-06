@@ -1,7 +1,7 @@
 ![tag jdk17](https://img.shields.io/badge/tag-jdk17-orange.svg)
 ![technology Maven](https://img.shields.io/badge/technology-Maven-blue.svg)
 ![technology ANTLR4](https://img.shields.io/badge/technology-ANTLR4-red.svg)
-[![Maven Central](https://img.shields.io/maven-central/v/com.gatekeeperx.ruleflow/ruleflow.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.gatekeeperx.ruleflow/rules-interpreter)
+[![Maven Central](https://img.shields.io/maven-central/v/com.gatekeeperx/ruleflow.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.gatekeeperx/ruleflow/)
 
 # Ruleflow Engine and DSL
 ### Project move and license change
