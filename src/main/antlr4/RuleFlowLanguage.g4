@@ -1,9 +1,5 @@
 grammar RuleFlowLanguage;
 
-@header {
-package com.gatekeeperx.ruleflow;
-}
-
 parse: (workflow | error) EOF;
 
 error: UNEXPECTED_CHAR {
