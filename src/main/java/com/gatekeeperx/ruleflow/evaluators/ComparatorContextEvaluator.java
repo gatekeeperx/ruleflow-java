@@ -22,11 +22,21 @@ public class ComparatorContextEvaluator implements ContextEvaluator<RuleFlowLang
         } else if (left instanceof Number && right instanceof Number) {
             result = compareNumbers(ctx.op, left, right);
         } else if (left instanceof String && right instanceof String) {
-            result = compareStrings(ctx.op, (String) left, (String) right);
+            // Try numeric comparison first if both strings look like numbers
+            Double leftNum = tryParseNumber((String) left);
+            Double rightNum = tryParseNumber((String) right);
+            if (leftNum != null && rightNum != null) {
+                result = compareNumbers(ctx.op, leftNum, rightNum);
+            } else {
+                result = compareStrings(ctx.op, (String) left, (String) right);
+            }
         } else if (left instanceof Boolean && right instanceof Boolean) {
             result = compareBooleans(ctx.op, (Boolean) left, (Boolean) right);
         } else if (left instanceof java.time.ZonedDateTime && right instanceof java.time.ZonedDateTime) {
             result = compareZonedDateTimes(ctx.op, (java.time.ZonedDateTime) left, (java.time.ZonedDateTime) right);
+        } else if (isStringNumberComparison(left, right)) {
+            // Handle mixed String-Number comparisons by converting String to Number
+            result = compareMixedStringNumber(ctx.op, left, right);
         } else if (left instanceof Comparable<?> && right instanceof Comparable<?>) {
             result = compareComparables(ctx.op, (Comparable<?>) left, (Comparable<?>) right);
         } else {
@@ -35,6 +45,46 @@ public class ComparatorContextEvaluator implements ContextEvaluator<RuleFlowLang
 
         logger.debug("Comparator: left={}, right={}, op={}, result={}", left, right, ctx.op.getText(), result);
         return result;
+    }
+    
+    private boolean isStringNumberComparison(Object left, Object right) {
+        return (left instanceof String && right instanceof Number) ||
+               (left instanceof Number && right instanceof String);
+    }
+    
+    private Boolean compareMixedStringNumber(Token operator, Object left, Object right) {
+        Double leftNum;
+        Double rightNum;
+        
+        if (left instanceof String) {
+            leftNum = tryParseNumber((String) left);
+            rightNum = ((Number) right).doubleValue();
+        } else {
+            leftNum = ((Number) left).doubleValue();
+            rightNum = tryParseNumber((String) right);
+        }
+        
+        if (leftNum == null || rightNum == null) {
+            // If parsing fails, fall back to string comparison for equality checks
+            if (operator.getType() == RuleFlowLanguageParser.EQ || 
+                operator.getType() == RuleFlowLanguageParser.NOT_EQ) {
+                return compareStrings(operator, left.toString(), right.toString());
+            }
+            throw new TypeComparisonException("Cannot compare non-numeric string with number: " + left + " vs " + right);
+        }
+        
+        return compareNumbers(operator, leftNum, rightNum);
+    }
+    
+    private Double tryParseNumber(String value) {
+        if (value == null || value.isEmpty()) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private Boolean compareNull(Token operator, Object left, Object right) {
