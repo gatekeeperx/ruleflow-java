@@ -429,5 +429,70 @@ public class EvalInListTest {
 
         Assertions.assertEquals(expectedResult, result);
     }
+
+    @Test
+    public void testEvalInListWithSwappedOperands() {
+        // Test with swapped operands to ensure order doesn't matter
+        // transaction.email = elem.fieldName1 (instead of elem.fieldName1 = transaction.email)
+        // date(now()) <= date(elem.endDate) (instead of date(elem.endDate) >= date(now()))
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'blocked' evalInList('aList', transaction.email = elem.fieldName1 AND date(now()) <= date(elem.endDate)) return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "blocked", "block");
+
+        // Use ISO date strings (yyyy-MM-dd format) as the date() function expects strings
+        LocalDateTime now = LocalDateTime.now();
+        String pastDate = now.minusYears(3).toLocalDate().format(java.time.format.DateTimeFormatter.ISO_DATE);
+        String futureDate = now.plusYears(3).toLocalDate().format(java.time.format.DateTimeFormatter.ISO_DATE);
+        String currentDate = now.toLocalDate().format(java.time.format.DateTimeFormatter.ISO_DATE);
+
+        WorkflowResult result = ruleEngine.evaluate(Map.of(
+            "transaction", Map.of("email", "elem1")
+        ), Map.of(
+            "aList", List.of(
+                Map.of("fieldName1", "other", "endDate", currentDate),      // Wrong email
+                Map.of("fieldName1", "elem1", "endDate", pastDate),         // Right email but past date (should not match)
+                Map.of("fieldName1", "elem1", "endDate", futureDate)        // Matches email AND future date (should match)
+            )
+        ));
+
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void testEvalInListWithElemFieldInJson() {
+        // Test that 'elem' keyword in evalInList refers to the list item, not a JSON field named 'elem'
+        // This ensures that even if the JSON has a field called 'elem', it doesn't interfere
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'blocked' evalInList('blacklist', elem.field1 = 'test') return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "blocked", "block");
+        
+        // JSON has a field named 'elem' - this should NOT interfere with elem keyword in evalInList
+        WorkflowResult result = ruleEngine.evaluate(Map.of(
+            "elem", "someValue",  // JSON field named 'elem'
+            "otherField", "otherValue"
+        ), Map.of(
+            "blacklist", List.of(
+                Map.of("field1", "other"),
+                Map.of("field1", "test"),  // This should match via elem.field1
+                Map.of("field1", "another")
+            )
+        ));
+
+        Assertions.assertEquals(expectedResult, result);
+    }
 }
 
