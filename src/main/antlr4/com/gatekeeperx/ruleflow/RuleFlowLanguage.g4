@@ -1,8 +1,5 @@
 grammar RuleFlowLanguage;
 
-@header {
-}
-
 parse: (workflow | error) EOF;
 
 error: UNEXPECTED_CHAR {
