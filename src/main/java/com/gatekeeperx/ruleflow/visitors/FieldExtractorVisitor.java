@@ -49,6 +49,15 @@ public class FieldExtractorVisitor extends RuleFlowLanguageBaseVisitor<Void> {
     return null;
   }
 
+  @Override
+  public Void visitEvalInList(RuleFlowLanguageParser.EvalInListContext ctx) {
+    if (ctx.listName != null) {
+      listNames.add(stripQuotes(ctx.listName.getText()));
+    }
+    // Continue visiting children to extract fields from the predicate expression
+    return visitChildren(ctx);
+  }
+
   private String stripQuotes(String quotedString) {
     if (quotedString.startsWith("'") && quotedString.endsWith("'")) {
       return quotedString.substring(1, quotedString.length() - 1);

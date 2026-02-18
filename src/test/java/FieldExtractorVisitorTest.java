@@ -57,4 +57,30 @@ class FieldExtractorVisitorTest {
     assertEquals(Set.of("gmv_user_1d"), features);
     assertEquals(Set.of("cardBins"), lists);
   }
+
+  @Test
+  void testEvalInListExtractsListName() {
+    String workflow = """
+        WORKFLOW 'TestWorkflow'
+            RULESET 'Main'
+                'CheckBlacklist'
+                    evalInList('blacklistedUsers', elem.userId == userId)
+                    THEN
+                    action('block')
+
+            DEFAULT
+            RETURN 'approved'
+        END
+        """;
+
+    FieldExtractorVisitor visitor = new FieldExtractorVisitor();
+    ParseTree tree = parse(workflow);
+    visitor.visit(tree);
+
+    Set<String> inputs = visitor.getInputFields();
+    Set<String> lists = visitor.getListNames();
+
+    assertEquals(Set.of("blacklistedUsers"), lists);
+    assertEquals(Set.of("elem.userId", "userId"), inputs);
+  }
 }

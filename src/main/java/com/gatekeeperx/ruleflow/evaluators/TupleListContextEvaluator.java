@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class TupleListContextEvaluator implements ContextEvaluator<RuleFlowLanguageParser.TupleListContext> {
@@ -45,8 +46,13 @@ public class TupleListContextEvaluator implements ContextEvaluator<RuleFlowLangu
         } else if (ctx.values.storedList != null) {
             String listKey = ctx.values.string_literal(0).getText().replace("'", "");
             List<?> stored = visitor.getLists().get(listKey);
+            
+            if (stored == null || stored.isEmpty()) {
+                return false;
+            }
 
-            if (stored != null && stored.stream().allMatch(i -> i instanceof List<?> tuple && tuple.size() == inputTuple.size())) {
+            // Check if elements are Lists (original format)
+            if (stored.stream().allMatch(i -> i instanceof List<?> tuple && tuple.size() == inputTuple.size())) {
                 return stored.stream().map(i -> (List<?>) i)
                     .anyMatch(tuple -> {
                         for (int i = 0; i < tuple.size(); i++) {
@@ -57,6 +63,19 @@ public class TupleListContextEvaluator implements ContextEvaluator<RuleFlowLangu
                         return true;
                     });
             }
+            
+            // Check if elements are Maps (new format with field names)
+            if (stored.stream().allMatch(i -> i instanceof Map<?, ?> map && map.size() == inputTuple.size())) {
+                return stored.stream().map(i -> (Map<?, ?>) i)
+                    .anyMatch(map -> {
+                        // Extract values in iteration order (preserves fieldNames order for LinkedHashMap)
+                        List<String> mapValues = map.values().stream()
+                            .map(Object::toString)
+                            .collect(Collectors.toList());
+                        return mapValues.equals(inputTuple);
+                    });
+            }
+            
             return false;
 
         } else if (ctx.values.validProperty() != null) {

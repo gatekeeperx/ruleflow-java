@@ -6,6 +6,7 @@ import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
 import com.gatekeeperx.ruleflow.errors.UnexpectedSymbolException;
 import com.gatekeeperx.ruleflow.visitors.Visitor;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +48,14 @@ public class ListContextEvaluator implements ContextEvaluator<RuleFlowLanguagePa
         } else if (ctx.values.storedList != null) {
             String listKey = ctx.values.string_literal(0).getText().replace("'", "");
             List<?> list = visitor.getLists().get(listKey);
-            return list != null && list.contains(value.toString());
+            if (list == null) return false;
+            return list.stream().anyMatch(item -> {
+                if (item instanceof Map<?, ?> map) {
+                    // For Map elements, check if any value matches
+                    return map.containsValue(value.toString());
+                }
+                return item.toString().equals(value.toString());
+            });
         } else if (ctx.values.validProperty() != null) {
             List<?> validPropertyList = (List<?>) new ValidPropertyContextEvaluator().evaluate(ctx.values.validProperty(), visitor);
             return validPropertyList.contains(value);
@@ -67,7 +75,15 @@ public class ListContextEvaluator implements ContextEvaluator<RuleFlowLanguagePa
         } else if (ctx.values.storedList != null) {
             String listKey = ctx.values.string_literal(0).getText().replace("'", "");
             List<?> list = visitor.getLists().get(listKey);
-            return list != null && list.stream().anyMatch(item -> value.toString().contains((String) item));
+            if (list == null) return false;
+            return list.stream().anyMatch(item -> {
+                if (item instanceof Map<?, ?> map) {
+                    // For Map elements, check if value contains any of the map's values
+                    return map.values().stream()
+                        .anyMatch(mapValue -> value.toString().contains(mapValue.toString()));
+                }
+                return value.toString().contains(item.toString());
+            });
         } else {
             throw new RuntimeException("Cannot find symbol");
         }
@@ -84,7 +100,16 @@ public class ListContextEvaluator implements ContextEvaluator<RuleFlowLanguagePa
                 .collect(Collectors.toList());
         } else if (ctx.values.storedList != null) {
             String listKey = ctx.values.string_literal(0).getText().replace("'", "");
-            list = visitor.getLists().get(listKey).stream().collect(Collectors.toList());
+            List<?> storedList = visitor.getLists().get(listKey);
+            if (storedList == null) return false;
+            // Handle Map elements for stored lists
+            return storedList.stream().anyMatch(item -> {
+                if (item instanceof Map<?, ?> map) {
+                    return map.values().stream()
+                        .anyMatch(mapValue -> value.startsWith(mapValue.toString()));
+                }
+                return value.startsWith(item.toString());
+            });
         } else if (ctx.values.validProperty() != null) {
             list = (List<?>) new ValidPropertyContextEvaluator().evaluate(ctx.values.validProperty(), visitor);
         } else {
