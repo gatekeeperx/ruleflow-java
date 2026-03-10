@@ -133,4 +133,124 @@ class CompareTest {
             .anyMatch(warning -> warning.equals("There is a comparison between different dataTypes in rule comparison")),
             "Should contain warning about type comparison in rule 'comparison'");
     }
+
+    @Test
+    public void givenNumberWhenOperatingEqualsOperationMustGoOk() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'x_is_equals' x  = 3456 return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "x_is_equals", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("x", "3456"));
+
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenStringValueWhenComparedWithNumberLtMustGoOk() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'x_lt' x < 100 return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "x_lt", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("x", "50"));
+
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenStringValueWhenComparedWithNumberGtMustGoOk() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'x_gt' x > 100 return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "x_gt", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("x", "200"));
+
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenStringValueWhenComparedWithNumberNotEqualMustGoOk() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'x_ne' x <> 100 return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "x_ne", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("x", "999"));
+
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenNonNumericStringWhenComparedWithNumberEqualsMustFallToDefault() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'x_eq' x = 5967 return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult result = ruleEngine.evaluate(Map.of("x", "not_a_number"));
+
+        Assertions.assertEquals("allow", result.getResult());
+        Assertions.assertEquals("default", result.getRule());
+    }
+
+    @Test
+    public void givenNonNumericStringWhenComparedWithNumberNotEqualMustMatch() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'x_ne' x <> 5967 return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "x_ne", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("x", "not_a_number"));
+
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenDecimalStringWhenComparedWithNumberMustGoOk() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'x_eq' x = 99.5 return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "x_eq", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("x", "99.5"));
+
+        Assertions.assertEquals(expectedResult, result);
+    }
+
 }

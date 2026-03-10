@@ -27,6 +27,10 @@ public class ComparatorContextEvaluator implements ContextEvaluator<RuleFlowLang
             result = compareBooleans(ctx.op, (Boolean) left, (Boolean) right);
         } else if (left instanceof java.time.ZonedDateTime && right instanceof java.time.ZonedDateTime) {
             result = compareZonedDateTimes(ctx.op, (java.time.ZonedDateTime) left, (java.time.ZonedDateTime) right);
+        } else if (left instanceof String && right instanceof Number) {
+            result = compareMixedStringNumber(ctx.op, (String) left, (Number) right, true);
+        } else if (left instanceof Number && right instanceof String) {
+            result = compareMixedStringNumber(ctx.op, (String) right, (Number) left, false);
         } else if (left instanceof Comparable<?> && right instanceof Comparable<?>) {
             result = compareComparables(ctx.op, (Comparable<?>) left, (Comparable<?>) right);
         } else {
@@ -79,6 +83,25 @@ public class ComparatorContextEvaluator implements ContextEvaluator<RuleFlowLang
             case RuleFlowLanguageParser.GT_EQ -> comparisonResult >= 0;
             default -> throw new RuntimeException("Invalid condition " + operator.getText());
         };
+    }
+
+    /**
+     * Handles comparisons where one operand is a String and the other is a Number.
+     * Tries to parse the string as a number for numeric comparison; if the string
+     * is non-numeric, only NOT_EQ returns true (they are clearly different values).
+     *
+     * @param stringIsLeft true when the String was the left operand in the original expression
+     */
+    private Boolean compareMixedStringNumber(Token operator, String str, Number num, boolean stringIsLeft) {
+        try {
+            Double parsedStr = Double.valueOf(str);
+            Double numValue = num.doubleValue();
+            return stringIsLeft
+                ? compareValues(operator, Double::compareTo, parsedStr, numValue)
+                : compareValues(operator, Double::compareTo, numValue, parsedStr);
+        } catch (NumberFormatException e) {
+            return operator.getType() == RuleFlowLanguageParser.NOT_EQ;
+        }
     }
 
     private Boolean compareZonedDateTimes(Token operator, java.time.ZonedDateTime left, java.time.ZonedDateTime right) {
