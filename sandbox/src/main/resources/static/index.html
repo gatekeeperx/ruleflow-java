@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ruleflow sandbox</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <style>
+    :root {
+      --bg:      #282a36;
+      --panel:   #21222c;
+      --border:  #44475a;
+      --text:    #f8f8f2;
+      --muted:   #6272a4;
+      --green:   #50fa7b;
+      --red:     #ff5555;
+      --yellow:  #f1fa8c;
+      --orange:  #ffb86c;
+      --purple:  #bd93f9;
+      --cyan:    #8be9fd;
+      --pink:    #ff79c6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 15px; font-weight: 700; color: var(--purple); letter-spacing: 0.3px; }
+    header h1 span { color: var(--muted); font-weight: 400; }
+
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .shortcut { font-size: 11px; color: var(--muted); }
+
+    .btn {
+      padding: 5px 14px;
+      border: none;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.8; }
+    .btn-primary { background: var(--purple); color: var(--bg); font-weight: 700; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+
+    /* ── Main layout ── */
+    .workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left — DSL editor */
+    .col-dsl {
+      flex: 3;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    /* Right — payload + lists stacked */
+    .col-right {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .col-right .panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .col-right .panel + .panel { border-top: 1px solid var(--border); }
+
+    /* Bottom — result */
+    .col-result {
+      flex-shrink: 0;
+      height: 220px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Panel label ── */
+    .panel-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 10px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    /* ── CodeMirror ── */
+    .cm-wrap { flex: 1; overflow: auto; }
+    .CodeMirror {
+      height: 100%;
+      font-size: 13px;
+      font-family: inherit;
+      line-height: 1.65;
+      background: var(--bg);
+    }
+    .CodeMirror-scroll { min-height: 0; }
+
+    /* ── Result panel ── */
+    .result-body {
+      flex: 1;
+      overflow: auto;
+      padding: 12px 16px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .result-empty { color: var(--muted); }
+    .result-error { color: var(--red); white-space: pre-wrap; }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 2px 16px;
+      align-items: baseline;
+    }
+    .r-key { color: var(--muted); white-space: nowrap; }
+    .r-val { color: var(--cyan); }
+    .r-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--bg);
+      margin-bottom: 10px;
+    }
+    .r-section {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .r-section-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    pre.r-json {
+      color: var(--text);
+      white-space: pre-wrap;
+      font-size: 12px;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ruleflow <span>sandbox</span></h1>
+  <div class="header-right">
+    <span class="shortcut">⌘↵ to run</span>
+    <button class="btn btn-ghost" onclick="loadExample()">Example</button>
+    <button class="btn btn-primary" onclick="evaluate()">Run</button>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- DSL editor -->
+  <div class="col-dsl">
+    <div class="panel-label"><span>Workflow DSL</span></div>
+    <div class="cm-wrap" id="dsl-wrap"></div>
+  </div>
+
+  <!-- Payload + Lists -->
+  <div class="col-right">
+    <div class="panel">
+      <div class="panel-label"><span>Payload (JSON)</span></div>
+      <div class="cm-wrap" id="payload-wrap"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-label"><span>Lists (JSON)</span></div>
+      <div class="cm-wrap" id="lists-wrap"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Result -->
+<div class="col-result">
+  <div class="panel-label">
+    <span>Result</span>
+    <span id="elapsed"></span>
+  </div>
+  <div class="result-body" id="result">
+    <span class="result-empty">Run a workflow to see results here.</span>
+  </div>
+</div>
+
+<script>
+  const EXAMPLES = [
+    {
+      label: 'Basic fraud check',
+      dsl: `workflow 'fraud_check'
+    ruleset 'amount_check'
+        'high'   amount > 1000 return block
+        'medium' amount > 500  return review
+
+    default allow
+end`,
+      payload: `{
+  "amount": 750,
+  "userId": "u123"
+}`,
+      lists: `{}`
+    },
+    {
+      label: 'Multi-ruleset with SET',
+      dsl: `workflow 'risk_score' evaluation_mode single_match
+    ruleset 'scoring'
+        'score_rule' amount > 0 SET $score = amount * 0.1 return scored
+
+    ruleset 'decision'
+        'block_high' $score > 100 return block
+        'review_mid' $score > 50  return review
+
+    default allow
+end`,
+      payload: `{
+  "amount": 1200
+}`,
+      lists: `{}`
+    },
+    {
+      label: 'List membership',
+      dsl: `workflow 'geo_check'
+    ruleset 'country_check'
+        'blocked' country in list('blocklist') return block
+
+    default allow
+end`,
+      payload: `{
+  "country": "CN"
+}`,
+      lists: `{
+  "blocklist": ["CN", "RU", "KP"]
+}`
+    }
+  ];
+
+  let currentExample = 0;
+
+  // Initialise editors
+  const dslEditor = CodeMirror(document.getElementById('dsl-wrap'), {
+    theme: 'dracula',
+    lineNumbers: true,
+    lineWrapping: true,
+    indentUnit: 4,
+    tabSize: 4,
+    autofocus: true,
+  });
+
+  const payloadEditor = CodeMirror(document.getElementById('payload-wrap'), {
+    mode: 'application/json',
+    theme: 'dracula',
+    lineNumbers: true,
+    lineWrapping: true,
+  });
+
+  const listsEditor = CodeMirror(document.getElementById('lists-wrap'), {
+    mode: 'application/json',
+    theme: 'dracula',
+    lineNumbers: true,
+    lineWrapping: true,
+  });
+
+  function loadExample() {
+    const ex = EXAMPLES[currentExample % EXAMPLES.length];
+    currentExample++;
+    dslEditor.setValue(ex.dsl);
+    payloadEditor.setValue(ex.payload);
+    listsEditor.setValue(ex.lists);
+  }
+
+  // Keyboard shortcut ⌘/Ctrl + Enter
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); evaluate(); }
+  });
+
+  // Load first example on start
+  loadExample();
+
+  // ── Evaluate ────────────────────────────────────────────────────────────────
+  async function evaluate() {
+    const workflow = dslEditor.getValue();
+    const payloadStr = payloadEditor.getValue().trim() || '{}';
+    const listsStr   = listsEditor.getValue().trim()   || '{}';
+
+    let payload, lists;
+    try { payload = JSON.parse(payloadStr); } catch (e) { showError('Payload JSON: ' + e.message); return; }
+    try { lists   = JSON.parse(listsStr);   } catch (e) { showError('Lists JSON: '   + e.message); return; }
+
+    const t0 = performance.now();
+    try {
+      const res  = await fetch('/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workflow, payload, lists }),
+      });
+      const ms   = Math.round(performance.now() - t0);
+      const data = await res.json();
+      document.getElementById('elapsed').textContent = ms + ' ms';
+      res.ok && data.error !== true ? showResult(data) : showError(data.message || 'Unknown error');
+    } catch (e) {
+      showError('Request failed: ' + e.message);
+    }
+  }
+
+  // ── Render helpers ──────────────────────────────────────────────────────────
+  function showError(msg) {
+    document.getElementById('result').innerHTML =
+      `<div class="result-error">⚠  ${esc(msg)}</div>`;
+  }
+
+  const BADGE_COLORS = {
+    allow:   'var(--green)',
+    block:   'var(--red)',
+    review:  'var(--yellow)',
+    flagged: 'var(--orange)',
+    scored:  'var(--cyan)',
+  };
+
+  function showResult(d) {
+    const color = BADGE_COLORS[(d.result ?? '').toLowerCase()] ?? 'var(--purple)';
+    let h = '';
+
+    h += `<div class="r-badge" style="background:${color}">${esc(d.result ?? '—')}</div>`;
+
+    h += `<div class="result-grid">`;
+    if (d.ruleset) h += row('ruleset', d.ruleset);
+    if (d.rule)    h += row('rule',    d.rule);
+    h += `</div>`;
+
+    if (d.variables && Object.keys(d.variables).length) {
+      h += section('Variables',
+        Object.entries(d.variables)
+          .map(([k, v]) => row('$' + k, v))
+          .join('')
+      );
+    }
+
+    if (d.actions?.length) {
+      h += section('Actions', `<pre class="r-json">${esc(JSON.stringify(d.actions, null, 2))}</pre>`);
+    }
+
+    if (d.matchedRules?.length > 1) {
+      h += section(`Matched Rules (${d.matchedRules.length})`,
+        d.matchedRules.map(mr =>
+          `<div class="result-grid">${row(mr.ruleset + ' / ' + mr.rule, mr.result)}</div>`
+        ).join('')
+      );
+    }
+
+    document.getElementById('result').innerHTML = h;
+  }
+
+  function row(k, v) {
+    return `<span class="r-key">${esc(k)}</span><span class="r-val">${esc(String(v))}</span>`;
+  }
+
+  function section(title, body) {
+    return `<div class="r-section"><div class="r-section-title">${esc(title)}</div>
+      <div class="result-grid">${body}</div></div>`;
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>
