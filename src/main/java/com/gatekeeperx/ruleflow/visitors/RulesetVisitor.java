@@ -97,6 +97,9 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                             String rawName = setClause.variable.getText(); // "$varName"
                             visitor.setVariable(rawName.substring(1), value); // stored as "varName"
                         }
+                        if (rule.rule_body().K_CONTINUE() != null) {
+                            continue; // variables set — keep evaluating subsequent rules and rulesets
+                        }
                         Object exprResult;
                         if (rule.rule_body().return_result().expr() != null) {
                             exprResult = visitor.visit(rule.rule_body().return_result().expr());
@@ -181,9 +184,10 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                 error
             );
             result.setActionCalls(actionsList);
+            result.setVariables(new HashMap<>(evaluator.getVariables()));
             return result;
         } else if (ctx.default_clause().return_result().state() != null) {
-            return new WorkflowResult(
+            WorkflowResult result = new WorkflowResult(
                 removeSingleQuote(ctx.workflow_name().getText()),
                 "default",
                 "default",
@@ -195,6 +199,8 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                 actionsList,
                 error
             );
+            result.setVariables(new HashMap<>(evaluator.getVariables()));
+            return result;
         } else {
             throw new RuntimeException("No default result found");
         }

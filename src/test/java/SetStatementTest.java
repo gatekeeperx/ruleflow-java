@@ -21,7 +21,7 @@ public class SetStatementTest {
     @Test
     void testBasicSetExposedInResult() {
         String workflow = String.format(TEMPLATE,
-            "'rule1' amount > 500 SET $riskScore = amount * 2 return flagged");
+            "'rule1' amount > 500 set $riskScore = amount * 2 return flagged");
 
         WorkflowResult result = new Workflow(workflow).evaluate(Map.of("amount", 600), Map.of());
 
@@ -32,7 +32,7 @@ public class SetStatementTest {
     @Test
     void testMultipleSetClausesTopToBottom() {
         String workflow = String.format(TEMPLATE,
-            "'rule1' amount > 0 SET $base = amount * 2 SET $doubled = $base return ok");
+            "'rule1' amount > 0 set $base = amount * 2 set $doubled = $base return ok");
 
         WorkflowResult result = new Workflow(workflow).evaluate(Map.of("amount", 10), Map.of());
 
@@ -47,7 +47,7 @@ public class SetStatementTest {
         String workflow = """
             workflow 'test'
                 ruleset 'check'
-                    'first' amount > 100 SET $flag = 1 return first_matched
+                    'first' amount > 100 set $flag = 1 return first_matched
                     'second' $flag == 1 return second_matched
                 default allow
             end
@@ -65,7 +65,7 @@ public class SetStatementTest {
         String workflow = """
             workflow 'test'
                 ruleset 'scoring'
-                    'score_rule' amount > 0 SET $score = amount * 3 return scored
+                    'score_rule' amount > 0 set $score = amount * 3 return scored
 
                 ruleset 'decision'
                     'high' $score > 100 return block
@@ -86,13 +86,13 @@ public class SetStatementTest {
         String workflow = """
             workflow 'test'
                 ruleset 'check'
-                    'setter' amount > 0 SET $amount = 9999 return set_done
+                    'setter' amount > 0 set $amount = 9999 return set_done
                     'verify' amount > 9000 return shadowed
                 default allow
             end
             """;
 
-        // Request amount=100. First rule matches, tries to SET $amount=9999.
+        // Request amount=100. First rule matches, tries to set $amount=9999.
         // In single-match mode, returns immediately after first rule.
         WorkflowResult result = new Workflow(workflow).evaluate(Map.of("amount", 100), Map.of());
         assertEquals("set_done", result.getResult());
@@ -104,7 +104,7 @@ public class SetStatementTest {
     @Test
     void testSetWithCustomFunction() {
         String workflow = String.format(TEMPLATE,
-            "'rule1' userId <> '' SET $score = riskFn(userId) return done");
+            "'rule1' userId <> '' set $score = riskFn(userId) return done");
 
         RuleflowFunction fn = args -> 42;
 
@@ -132,7 +132,7 @@ public class SetStatementTest {
     @Test
     void testSetClauseWithStringLiteral() {
         String workflow = String.format(TEMPLATE,
-            "'rule1' amount > 0 SET $category = 'high' return ok");
+            "'rule1' amount > 0 set $category = 'high' return ok");
 
         WorkflowResult result = new Workflow(workflow).evaluate(Map.of("amount", 1), Map.of());
 
@@ -143,7 +143,7 @@ public class SetStatementTest {
     @Test
     void testDefaultResultHasEmptyVariables() {
         String workflow = String.format(TEMPLATE,
-            "'rule1' amount > 1000 SET $x = 1 return flagged");
+            "'rule1' amount > 1000 set $x = 1 return flagged");
 
         // amount=1 — rule does not match, falls to default
         WorkflowResult result = new Workflow(workflow).evaluate(Map.of("amount", 1), Map.of());
@@ -157,8 +157,8 @@ public class SetStatementTest {
         String workflow = """
             workflow 'test' evaluation_mode multi_match
                 ruleset 'check'
-                    'rule_a' amount > 0 SET $tagA = 'yes' return matched_a
-                    'rule_b' amount > 0 SET $tagB = 'yes' return matched_b
+                    'rule_a' amount > 0 set $tagA = 'yes' return matched_a
+                    'rule_b' amount > 0 set $tagB = 'yes' return matched_b
                 default allow
             end
             """;

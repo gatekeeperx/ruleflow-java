@@ -7,26 +7,27 @@ RuleFlow is a declarative rule engine DSL for expressing business logic as reada
 ## Table of Contents
 
 1. [Workflow Structure](#1-workflow-structure)
-2. [Rules and Results](#2-rules-and-results)
-3. [Expressions and Conditions](#3-expressions-and-conditions)
-4. [Property Access](#4-property-access)
-5. [Literals and Values](#5-literals-and-values)
-6. [Math Operators](#6-math-operators)
-7. [List Operations](#7-list-operations)
-8. [Aggregations](#8-aggregations)
-9. [evalInList](#9-evalinlist)
-10. [Date and Time](#10-date-and-time)
-11. [String Similarity](#11-string-similarity)
-12. [Geo Operations](#12-geo-operations)
-13. [Regex](#13-regex)
-14. [Custom Functions](#14-custom-functions)
-15. [SET — Variable Assignment](#15-set--variable-assignment)
-16. [Actions](#16-actions)
-17. [Evaluation Modes](#17-evaluation-modes)
-18. [Error Handling and Warnings](#18-error-handling-and-warnings)
-19. [Case Sensitivity](#19-case-sensitivity)
-20. [Operator Precedence](#20-operator-precedence)
-21. [Full Examples](#21-full-examples)
+   2. [Rules and Results](#2-rules-and-results)
+   3. [Expressions and Conditions](#3-expressions-and-conditions)
+   4. [Property Access](#4-property-access)
+   5. [Literals and Values](#5-literals-and-values)
+   6. [Math Operators](#6-math-operators)
+   7. [List Operations](#7-list-operations)
+   8. [Aggregations](#8-aggregations)
+   9. [evalInList](#9-evalinlist)
+   10. [Date and Time](#10-date-and-time)
+   11. [String Similarity](#11-string-similarity)
+   12. [Geo Operations](#12-geo-operations)
+   13. [Regex](#13-regex)
+   14. [Custom Functions](#14-custom-functions)
+   15. [set — Variable Assignment](#15-set--variable-assignment)
+   16. [continue — Score and Proceed](#16-continue--score-and-proceed)
+   17. [Actions](#17-actions)
+   18. [Evaluation Modes](#18-evaluation-modes)
+   19. [Error Handling and Warnings](#19-error-handling-and-warnings)
+   20. [Case Sensitivity](#20-case-sensitivity)
+   21. [Operator Precedence](#21-operator-precedence)
+   22. [Full Examples](#22-full-examples)
 
 ---
 
@@ -39,7 +40,7 @@ WORKFLOW '<name>'
     [EVALUATION_MODE SINGLE_MATCH | MULTI_MATCH]
 
     RULESET '<name>' [<condition> THEN]
-        '<rule_name>' <condition> [SET ...] RETURN <result> [WITH <actions>]
+        '<rule_name>' <condition> [set ...] RETURN <result> [WITH <actions>]
         ...
 
     DEFAULT RETURN <result> [WITH <actions>]
@@ -327,8 +328,8 @@ Aggregations operate on list-type fields in the data.
 Inside `{ }`, each item becomes the current data context. You can use:
 
 - A literal value — matches items equal to that value
-- A comparison — evaluated for each item
-- A compound expression — `AND`/`OR` on item properties
+  - A comparison — evaluated for each item
+  - A compound expression — `AND`/`OR` on item properties
 
 ```
 -- Does any item equal the string 'fraud'?
@@ -374,7 +375,7 @@ You can reference request-level properties freely alongside `elem.*`.
 ### Difference from aggregations
 
 - Aggregations (`.any`, `.all`, etc.) work on **fields within the request data**
-- `evalInList` works on **externally provided named lists**
+  - `evalInList` works on **externally provided named lists**
 
 ---
 
@@ -575,9 +576,9 @@ Each unique combination of `(functionName, args)` is computed **at most once** p
 
 ---
 
-## 15. SET — Variable Assignment
+## 15. set — Variable Assignment
 
-`SET` clauses compute and store intermediate values when a rule fires. Variables are available to all subsequent rules and rulesets within the same workflow evaluation.
+`set` clauses compute and store intermediate values when a rule fires. Variables are available to all subsequent rules and rulesets within the same workflow evaluation.
 
 ### Syntax
 
@@ -585,16 +586,16 @@ Variable names are prefixed with `$` in both declarations and references:
 
 ```
 '<rule_name>'  <condition>
-    SET $variable = <expression>
-    SET $variable2 = <expression2>
+    set $variable = <expression>
+    set $variable2 = <expression2>
     RETURN <result>
 ```
 
-- Multiple `SET` clauses execute top-to-bottom
-- Later `SET` clauses can reference variables set earlier in the same rule
-- Variables are workflow-scoped: visible in all subsequent rules and rulesets
+- Multiple `set` clauses execute top-to-bottom
+  - Later `set` clauses can reference variables set earlier in the same rule
+  - Variables are workflow-scoped: visible in all subsequent rules and rulesets
 
-### Accessing SET variables
+### Accessing set variables
 
 Use the `$` prefix to reference a variable anywhere an expression is valid:
 
@@ -602,7 +603,7 @@ Use the `$` prefix to reference a variable anywhere an expression is valid:
 workflow 'pricing'
     ruleset 'scoring'
         'compute' amount > 0
-            SET $base_score = amount * riskMultiplier
+            set $base_score = amount * riskMultiplier
             RETURN 'scored'
 
     ruleset 'decision'
@@ -612,14 +613,14 @@ workflow 'pricing'
 END
 ```
 
-**Namespacing:** bare identifiers (e.g. `amount`) always read request data; `$`-prefixed identifiers (e.g. `$amount`) always read SET variables. The two namespaces are syntactically separate — there is no ambiguity or shadowing.
+**Namespacing:** bare identifiers (e.g. `amount`) always read request data; `$`-prefixed identifiers (e.g. `$amount`) always read set variables. The two namespaces are syntactically separate — there is no ambiguity or shadowing.
 
 ### Member access on variable values
 
-If a SET variable holds an object (map), you can access its fields with dot notation:
+If a set variable holds an object (map), you can access its fields with dot notation:
 
 ```
-SET $result = screening(userId)
+set $result = screening(userId)
 $result.risk_score > 500
 ```
 
@@ -638,20 +639,71 @@ Object score = vars.get("base_score");
 ```
 'high_risk'
     score > 800
-    SET $risk_label = 'critical'
-    SET $fee = amount * 0.05
+    set $risk_label = 'critical'
+    set $fee = amount * 0.05
     RETURN 'flagged'
     WITH action('notify', {'level': 'critical'})
 
 'medium_risk'
     score > 500
-    SET $risk_label = 'medium'
+    set $risk_label = 'medium'
     RETURN 'review'
 ```
 
 ---
 
-## 16. Actions
+## 16. continue — Score and Proceed
+
+`continue` lets a rule fire its `set` clauses and then keep evaluating — without returning a final result. This is the standard pattern for multi-step scoring workflows where some rulesets assign scores and later rulesets make decisions based on those scores.
+
+### Syntax
+
+```
+'<rule_name>'  <condition>
+    [set $variable = <expression> ...]
+    continue
+```
+
+A rule with `continue`:
+- Evaluates its condition normally
+- Executes all `set` clauses if the condition is true
+- Does **not** return a result — evaluation continues to the next rule in the same ruleset, and then to subsequent rulesets
+- Does **not** appear in `getMatchedRules()` (even in `multi_match` mode)
+
+### Example: multi-step onboarding risk
+
+```
+workflow 'onboarding'
+    ruleset 'score_occupation'
+        'farmer'  occupation == 'farmer'  set $occ = 10 continue
+        'student' occupation == 'student' set $occ = 3  continue
+
+    ruleset 'score_country'
+        'high_risk' country == 'XX'                          set $nat = 10 continue
+        'local'     country == 'CO'                          set $nat = 5  continue
+        'other'     country <> 'XX' AND country <> 'CO'      set $nat = 7  continue
+
+    ruleset 'risk_rating'
+        'high'   ($occ * 0.5) + ($nat * 0.5) > 7 return high_risk
+        'medium' ($occ * 0.5) + ($nat * 0.5) > 4 return medium_risk
+
+    default low_risk
+end
+```
+
+The first two rulesets set `$occ` and `$nat`; the third ruleset reads them to produce a final decision.
+
+### continue vs return with set
+
+Use `continue` when you want scoring rulesets that feed into a decision ruleset. Use `return` with `set` when the rule that sets the variable also returns the final result.
+
+### Falling to default
+
+If no subsequent rule matches after all `continue` rules have fired, the `default` clause is returned. Variables set by `continue` rules are available in `getVariables()` even when the default is returned.
+
+---
+
+## 17. Actions
 
 Actions describe side effects to execute when a rule fires. They are returned as part of the workflow result for the caller to process.
 
@@ -685,7 +737,7 @@ RETURN 'block'
 
 Parameter values can be:
 - String literals: `'email'`, `'high'`
-- Request properties: `userId`, `order.id`
+  - Request properties: `userId`, `order.id`
 
 ```
 action('review', { 'user': userId, 'amount': amount, 'reason': 'velocity' })
@@ -703,7 +755,7 @@ for (Action a : actions) {
 
 ---
 
-## 17. Evaluation Modes
+## 18. Evaluation Modes
 
 ### single_match (default)
 
@@ -728,11 +780,11 @@ The top-level `WorkflowResult` reflects the **first** match (for backward compat
 List<MatchedRuleListItem> all = result.getMatchedRules();
 ```
 
-In multi_match mode, `SET` variables accumulate across all matched rules, and the final `getVariables()` snapshot reflects all assignments made throughout the evaluation.
+In multi_match mode, `set` variables accumulate across all matched rules, and the final `getVariables()` snapshot reflects all assignments made throughout the evaluation.
 
 ---
 
-## 18. Error Handling and Warnings
+## 19. Error Handling and Warnings
 
 RuleFlow is designed for resilience: individual rule failures do not abort the workflow. Instead, the failed rule is skipped with a warning, and evaluation continues.
 
@@ -755,12 +807,12 @@ boolean hadError = result.isError();
 ### Null behavior
 
 - `field = null` — true if field is null or absent
-- `field <> null` — true if field has a value
-- Accessing a null-valued nested field (e.g., `user.address.city` when `address` is null) — rule skipped with warning
+  - `field <> null` — true if field has a value
+  - Accessing a null-valued nested field (e.g., `user.address.city` when `address` is null) — rule skipped with warning
 
 ---
 
-## 19. Case Sensitivity
+## 20. Case Sensitivity
 
 | Element | Case sensitivity |
 |---|---|
@@ -774,7 +826,7 @@ boolean hadError = result.isError();
 
 ---
 
-## 20. Operator Precedence
+## 21. Operator Precedence
 
 From highest to lowest:
 
@@ -799,7 +851,7 @@ a + b * c = 15 AND (d < 10 OR e = 5)
 
 ---
 
-## 21. Full Examples
+## 22. Full Examples
 
 ### Fraud detection
 
@@ -809,13 +861,13 @@ WORKFLOW 'fraud_detection' EVALUATION_MODE SINGLE_MATCH
     RULESET 'velocity' transaction.count_24h > 50 THEN
         'burst_activity'
             transaction.count_24h > 200
-            SET $risk_flag = 'critical'
+            set $risk_flag = 'critical'
             RETURN 'block'
             WITH action('alert', {'channel': 'ops', 'severity': 'high'})
 
         'elevated_velocity'
             transaction.count_24h > 50
-            SET $risk_flag = 'elevated'
+            set $risk_flag = 'elevated'
             RETURN 'review'
 
     RULESET 'device'
@@ -856,20 +908,20 @@ WORKFLOW 'pricing' EVALUATION_MODE SINGLE_MATCH
 
         'vip_bulk'
             customer.tier = 'vip' AND order.items.count() >= 10
-            SET $discount = 0.25
-            SET $label = 'vip_bulk'
+            set $discount = 0.25
+            set $label = 'vip_bulk'
             RETURN EXPR(order.subtotal * (1 - $discount))
 
         'vip'
             customer.tier = 'vip'
-            SET $discount = 0.15
-            SET $label = 'vip'
+            set $discount = 0.15
+            set $label = 'vip'
             RETURN EXPR(order.subtotal * (1 - $discount))
 
         'bulk'
             order.items.count() >= 10
-            SET $discount = 0.10
-            SET $label = 'bulk'
+            set $discount = 0.10
+            set $label = 'bulk'
             RETURN EXPR(order.subtotal * (1 - $discount))
 
     DEFAULT RETURN EXPR(order.subtotal)

@@ -20,7 +20,7 @@ ruleset_condition: expr K_THEN | L_PAREN expr R_PAREN K_THEN;
 
 rules: name L_PAREN? rule_body R_PAREN?;
 
-rule_body: expr set_clause* ((K_THEN (K_WITH| K_AND)?  then_result = actions) | (K_RETURN result = return_result actions? ));
+rule_body: expr set_clause* ((K_THEN (K_WITH| K_AND)?  then_result = actions) | (K_RETURN result = return_result actions?) | K_CONTINUE);
 
 set_clause: K_SET variable=VARIABLE EQ_IC expr;
 
@@ -179,6 +179,7 @@ K_DATETIME: D A T E T I M E;
 K_DATE_ADD: D A T E '_' A D D;
 K_DATE_SUBTRACT: D A T E '_' S U B T R A C T;
 K_SET: S E T;
+K_CONTINUE: C O N T I N U E;
 
 STRING_DISTANCE: 'string_distance' | 'stringDistance';
 PARTIAL_RATIO: 'partial_ratio' | 'partialRatio';
