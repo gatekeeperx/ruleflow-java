@@ -92,6 +92,10 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                 try {
                     Object visitedRule = visitor.visit(rule.rule_body().expr());
                     if (visitedRule instanceof Boolean && (Boolean) visitedRule) {
+                        for (var setClause : rule.rule_body().set_clause()) {
+                            Object value = visitor.visit(setClause.expr());
+                            visitor.setVariable(setClause.variable.getText(), value);
+                        }
                         Object exprResult;
                         if (rule.rule_body().return_result().expr() != null) {
                             exprResult = visitor.visit(rule.rule_body().return_result().expr());
@@ -99,9 +103,9 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                             exprResult = rule.rule_body().return_result().state().ID().getText();
                         }
                         if(multiMatch) {
-                            matchedRules.add(workflowResult(rule, ctx, ruleSet, exprResult, warnings));
+                            matchedRules.add(workflowResult(rule, ctx, ruleSet, exprResult, warnings, visitor));
                         } else {
-                            return workflowResult(rule, ctx, ruleSet, exprResult, warnings);
+                            return workflowResult(rule, ctx, ruleSet, exprResult, warnings, visitor);
                         }
                     }
                 } catch (RuntimeException ex) {
@@ -143,6 +147,7 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                 warnings,
                 error
             );
+            result.setVariables(new HashMap<>(visitor.getVariables()));
             return result;
         }
 
@@ -199,7 +204,8 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
         RuleFlowLanguageParser.WorkflowContext ctx,
         RuleFlowLanguageParser.RulesetsContext ruleSet,
         Object expr,
-        Set<String> warnings) {
+        Set<String> warnings,
+        Visitor visitor) {
         WorkflowResult result = new WorkflowResult(
             removeSingleQuote(ctx.workflow_name().getText()),
             removeSingleQuote(ruleSet.name().getText()),
@@ -207,6 +213,7 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
             expr.toString(),
             warnings
         );
+        result.setVariables(new HashMap<>(visitor.getVariables()));
         if (rule.rule_body().actions() == null) {
             return result;
         } else {

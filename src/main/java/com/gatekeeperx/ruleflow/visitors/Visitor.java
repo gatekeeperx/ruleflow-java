@@ -44,6 +44,7 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
     private final Map<String, ?> root;
     private final Map<String, RuleflowFunction> functions;
     private final Map<List<Object>, Object> functionCallCache = new HashMap<>();
+    private final Map<String, Object> variables = new HashMap<>();
 
     public Visitor(Map<String, ?> data, Map<String, List<?>> lists, Map<String, ?> root) {
         this(data, lists, root, Map.of());
@@ -154,5 +155,13 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
 
     public Map<List<Object>, Object> getFunctionCallCache() {
         return functionCallCache;
+    }
+
+    public Map<String, Object> getVariables() {
+        return variables;
+    }
+
+    public void setVariable(String name, Object value) {
+        variables.put(name, value);
     }
 }

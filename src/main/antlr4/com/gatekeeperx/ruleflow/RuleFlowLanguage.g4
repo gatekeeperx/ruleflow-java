@@ -20,7 +20,9 @@ ruleset_condition: expr K_THEN | L_PAREN expr R_PAREN K_THEN;
 
 rules: name L_PAREN? rule_body R_PAREN?;
 
-rule_body: expr ((K_THEN (K_WITH| K_AND)?  then_result = actions) | (K_RETURN result = return_result actions? ));
+rule_body: expr set_clause* ((K_THEN (K_WITH| K_AND)?  then_result = actions) | (K_RETURN result = return_result actions? ));
+
+set_clause: K_SET variable=ID EQ_IC expr;
 
 name: string_literal;
 
@@ -175,6 +177,7 @@ K_DATE: D A T E;
 K_DATETIME: D A T E T I M E;
 K_DATE_ADD: D A T E '_' A D D;
 K_DATE_SUBTRACT: D A T E '_' S U B T R A C T;
+K_SET: S E T;
 
 STRING_DISTANCE: 'string_distance' | 'stringDistance';
 PARTIAL_RATIO: 'partial_ratio' | 'partialRatio';

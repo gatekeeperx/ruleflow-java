@@ -17,6 +17,7 @@ public class WorkflowResult {
     private WorkflowInfo workflowInfo;
     private boolean error;
     private List<MatchedRuleListItem> matchedRules;
+    private Map<String, Object> variables = new HashMap<>();
 
     public WorkflowResult(String workflow, String ruleSet, String rule, String result, Set<String> actions, Set<String> warnings, Map<String, Map<String, String>> actionsWithParams, WorkflowInfo workflowInfo, List<Action> actionsList, boolean error) {
         this.workflow = workflow;
@@ -219,6 +220,14 @@ public class WorkflowResult {
 
     public void setMatchedRules(List<MatchedRuleListItem> matchedRules) {
         this.matchedRules = matchedRules;
+    }
+
+    public Map<String, Object> getVariables() {
+        return variables;
+    }
+
+    public void setVariables(Map<String, Object> variables) {
+        this.variables = variables != null ? variables : new HashMap<>();
     }
 
     private static List<Action> convertActionsWithParamsToActionCalls(Map<String, Map<String, String>> actionsWithParams) {
