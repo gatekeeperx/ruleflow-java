@@ -24,6 +24,33 @@ public class FieldExtractorVisitor extends RuleFlowLanguageBaseVisitor<Void> {
   }
 
   @Override
+  public Void visitMemberAccess(RuleFlowLanguageParser.MemberAccessContext ctx) {
+    String fullPath = buildPropertyPath(ctx);
+    if (fullPath != null) {
+      if (fullPath.startsWith("features.")) {
+        featureFields.add(fullPath.substring("features.".length()));
+      } else {
+        inputFields.add(fullPath);
+      }
+    }
+    return null; // Don't visit children — full path handled above
+  }
+
+  private String buildPropertyPath(RuleFlowLanguageParser.MemberAccessContext ctx) {
+    String basePath;
+    if (ctx.base instanceof RuleFlowLanguageParser.PropertyContext) {
+      basePath = ((RuleFlowLanguageParser.PropertyContext) ctx.base).validProperty().getText();
+    } else if (ctx.base instanceof RuleFlowLanguageParser.MemberAccessContext) {
+      basePath = buildPropertyPath((RuleFlowLanguageParser.MemberAccessContext) ctx.base);
+      if (basePath == null) return null;
+    } else {
+      return null; // Non-property base (function call, arithmetic, etc.)
+    }
+    if (basePath.startsWith(".")) basePath = basePath.substring(1);
+    return basePath + "." + ctx.field.getText();
+  }
+
+  @Override
   public Void visitValidProperty(RuleFlowLanguageParser.ValidPropertyContext ctx) {
     String propertyText = ctx.getText();
 

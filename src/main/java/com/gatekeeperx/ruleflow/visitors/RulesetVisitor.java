@@ -1,6 +1,7 @@
 package com.gatekeeperx.ruleflow.visitors;
 
 import com.gatekeeperx.ruleflow.RuleFlowLanguageBaseVisitor;
+import com.gatekeeperx.ruleflow.functions.RuleflowFunction;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
 import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
 import com.gatekeeperx.ruleflow.errors.UnexpectedSymbolException;
@@ -24,10 +25,17 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
     private static final Logger logger = LoggerFactory.getLogger(RulesetVisitor.class);
     private final Map<String, ?> data;
     private final Map<String, List<?>> lists;
+    private final Map<String, RuleflowFunction> functions;
 
     public RulesetVisitor(Map<String, ?> data, Map<String, List<?>> lists) {
+        this(data, lists, Map.of());
+    }
+
+    public RulesetVisitor(Map<String, ?> data, Map<String, List<?>> lists,
+                          Map<String, RuleflowFunction> functions) {
         this.data = data;
         this.lists = lists;
+        this.functions = functions != null ? functions : Map.of();
     }
 
     @Override
@@ -37,7 +45,7 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
 
     @Override
     public WorkflowResult visitWorkflow(RuleFlowLanguageParser.WorkflowContext ctx) {
-        Visitor visitor = new Visitor(data, lists, data);
+        Visitor visitor = new Visitor(data, lists, data, functions);
         Set<String> warnings = new HashSet<>();
         List<WorkflowResult> matchedRules = new ArrayList<>();
         boolean error = false;

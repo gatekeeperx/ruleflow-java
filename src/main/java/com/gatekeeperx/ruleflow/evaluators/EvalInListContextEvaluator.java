@@ -68,7 +68,8 @@ public class EvalInListContextEvaluator implements ContextEvaluator<RuleFlowLang
             super(
                 currentItem instanceof Map ? (Map<String, ?>) currentItem : Map.of(),
                 parentVisitor.getLists(),
-                parentVisitor.getRoot()
+                parentVisitor.getRoot(),
+                parentVisitor.getFunctions()
             );
             this.currentItem = currentItem;
             this.parentVisitor = parentVisitor;
