@@ -22,10 +22,6 @@ public class ValidPropertyContextEvaluator implements ContextEvaluator<ValidProp
             Object fieldResult = propData.get(fieldName);
             logger.debug("ValidProperty simple: fieldName={}, root={}, result={}", fieldName, ctx.root != null, fieldResult);
             if (fieldResult == null) {
-                Object varResult = visitor.getVariables().get(fieldName);
-                if (varResult != null) {
-                    return varResult;
-                }
                 throw new PropertyNotFoundException(fieldName + " field cannot be found");
             }
             return fieldResult;

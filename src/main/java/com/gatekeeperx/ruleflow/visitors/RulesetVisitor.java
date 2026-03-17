@@ -94,7 +94,8 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                     if (visitedRule instanceof Boolean && (Boolean) visitedRule) {
                         for (var setClause : rule.rule_body().set_clause()) {
                             Object value = visitor.visit(setClause.expr());
-                            visitor.setVariable(setClause.variable.getText(), value);
+                            String rawName = setClause.variable.getText(); // "$varName"
+                            visitor.setVariable(rawName.substring(1), value); // stored as "varName"
                         }
                         Object exprResult;
                         if (rule.rule_body().return_result().expr() != null) {

@@ -18,6 +18,7 @@ import com.gatekeeperx.ruleflow.evaluators.CustomFunctionCallContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.EvalInListContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.GeoOperationContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.MemberAccessContextEvaluator;
+import com.gatekeeperx.ruleflow.evaluators.VariableRefContextEvaluator;
 import com.gatekeeperx.ruleflow.functions.RuleflowFunction;
 import com.gatekeeperx.ruleflow.evaluators.ListContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.MathAddContextEvaluator;
@@ -126,6 +127,9 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
             } else if (ctx instanceof RuleFlowLanguageParser.CustomFunctionCallContext) {
                 return new CustomFunctionCallContextEvaluator().evaluate(
                     (RuleFlowLanguageParser.CustomFunctionCallContext) ctx, this);
+            } else if (ctx instanceof RuleFlowLanguageParser.VariableRefContext) {
+                return new VariableRefContextEvaluator().evaluate(
+                    (RuleFlowLanguageParser.VariableRefContext) ctx, this);
             } else if (ctx instanceof RuleFlowLanguageParser.MemberAccessContext) {
                 return new MemberAccessContextEvaluator().evaluate(
                     (RuleFlowLanguageParser.MemberAccessContext) ctx, this);

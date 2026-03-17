@@ -22,7 +22,7 @@ rules: name L_PAREN? rule_body R_PAREN?;
 
 rule_body: expr set_clause* ((K_THEN (K_WITH| K_AND)?  then_result = actions) | (K_RETURN result = return_result actions? ));
 
-set_clause: K_SET variable=ID EQ_IC expr;
+set_clause: K_SET variable=VARIABLE EQ_IC expr;
 
 name: string_literal;
 
@@ -48,6 +48,7 @@ param_pairs: param_pair (COMMA param_pair)*;
 param_pair: field_name = string_literal ':' field_value = actionParamValue;
 
 expr: L_PAREN expr R_PAREN                                                      #parenthesis
+    | VARIABLE                                                                  #variableRef
     | base=expr DOT field=ID                                                    #memberAccess
     | left=expr op=(MULTIPLY | DIVIDE | MODULO) right=expr                      #mathMul
     | left=expr op=(ADD | MINUS) right=expr                                     #mathAdd
@@ -198,6 +199,7 @@ BOOLEAN_LITERAL: T R U E | F A L S E;
 DQUOTA_STRING: '"' ('\\'. | '\\"' | ~['"\\'])* '"';
 SQUOTA_STRING: '\'' ('\\'. | '\'\'' | ~('\'' | '\\'))* '\'';
 
+VARIABLE: '$' [a-zA-Z_] [a-zA-Z_0-9]*;
 ID: [a-zA-Z_] [a-zA-Z_0-9]*;
 
 SINGLE_LINE_COMMENT: '--' ~[\r\n]* -> channel(HIDDEN);
