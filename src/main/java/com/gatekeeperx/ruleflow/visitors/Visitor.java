@@ -31,6 +31,8 @@ import com.gatekeeperx.ruleflow.evaluators.UnaryContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.ValidPropertyContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.ValueContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.StringDistanceContextEvaluator;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -41,6 +43,7 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
     private final Map<String, List<?>> lists;
     private final Map<String, ?> root;
     private final Map<String, RuleflowFunction> functions;
+    private final Map<List<Object>, Object> functionCallCache = new HashMap<>();
 
     public Visitor(Map<String, ?> data, Map<String, List<?>> lists, Map<String, ?> root) {
         this(data, lists, root, Map.of());
@@ -147,5 +150,9 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
 
     public Map<String, RuleflowFunction> getFunctions() {
         return functions;
+    }
+
+    public Map<List<Object>, Object> getFunctionCallCache() {
+        return functionCallCache;
     }
 }

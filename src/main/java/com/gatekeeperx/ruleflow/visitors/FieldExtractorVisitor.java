@@ -10,6 +10,7 @@ public class FieldExtractorVisitor extends RuleFlowLanguageBaseVisitor<Void> {
   private final Set<String> inputFields = new HashSet<>();
   private final Set<String> featureFields = new HashSet<>();
   private final Set<String> listNames = new HashSet<>();
+  private final Set<String> functionNames = new HashSet<>();
 
   public Set<String> getInputFields() {
     return inputFields;
@@ -23,6 +24,16 @@ public class FieldExtractorVisitor extends RuleFlowLanguageBaseVisitor<Void> {
     return listNames;
   }
 
+  public Set<String> getFunctionNames() {
+    return functionNames;
+  }
+
+  @Override
+  public Void visitCustomFunctionCall(RuleFlowLanguageParser.CustomFunctionCallContext ctx) {
+    functionNames.add(ctx.ID().getText());
+    return visitChildren(ctx);
+  }
+
   @Override
   public Void visitMemberAccess(RuleFlowLanguageParser.MemberAccessContext ctx) {
     String fullPath = buildPropertyPath(ctx);
@@ -32,8 +43,10 @@ public class FieldExtractorVisitor extends RuleFlowLanguageBaseVisitor<Void> {
       } else {
         inputFields.add(fullPath);
       }
+      return null; // full path handled, don't descend
     }
-    return null; // Don't visit children — full path handled above
+    // Non-property base (e.g. function call) — visit children to capture arg fields
+    return visitChildren(ctx);
   }
 
   private String buildPropertyPath(RuleFlowLanguageParser.MemberAccessContext ctx) {

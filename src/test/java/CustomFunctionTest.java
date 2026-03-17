@@ -24,7 +24,7 @@ public class CustomFunctionTest {
     @Test
     public void testPrimitiveStringReturn() {
         String workflow = String.format(SIMPLE_WORKFLOW_TEMPLATE,
-            "'match' screening(userId) == 'pass' then setVar('riskScore', 0.445 * 5)");
+            "'match' screening(userId) == 'pass' return approved");
 
         RuleflowFunction fn = args -> "pass";
 
@@ -112,7 +112,7 @@ public class CustomFunctionTest {
     @Test
     public void testStructuredReturnFieldAccess() {
         String workflow = String.format(SIMPLE_WORKFLOW_TEMPLATE,
-            "'high risk' screening(userId).matchCount > 9 return block");
+            "'high risk' screening(userId).risk_score > 500 return block");
 
         RuleflowFunction fn = args -> Map.of("risk_score", 750, "label", "high");
 
@@ -162,7 +162,7 @@ public class CustomFunctionTest {
     @Test
     public void testStructuredReturnListFieldContains() {
         String workflow = String.format(SIMPLE_WORKFLOW_TEMPLATE,
-            "'fraud tag' screening(userId).matches contains 'fraud' return prevent");
+            "'fraud tag' screening(userId).tags contains 'fraud' return prevent");
 
         RuleflowFunction fn = args -> Map.of("tags", List.of("fraud", "high_risk"));
 

@@ -6,7 +6,9 @@ import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
 import com.gatekeeperx.ruleflow.errors.UnexpectedSymbolException;
 import com.gatekeeperx.ruleflow.visitors.Visitor;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class CustomFunctionCallContextEvaluator
@@ -26,6 +28,17 @@ public class CustomFunctionCallContextEvaluator
                 .map(visitor::visit)
                 .collect(Collectors.toList());
 
-        return function.apply(args);
+        List<Object> cacheKey = new ArrayList<>();
+        cacheKey.add(functionName);
+        cacheKey.addAll(args);
+
+        Map<List<Object>, Object> cache = visitor.getFunctionCallCache();
+        if (cache.containsKey(cacheKey)) {
+            return cache.get(cacheKey);
+        }
+
+        Object result = function.apply(args);
+        cache.put(cacheKey, result);
+        return result;
     }
 }
