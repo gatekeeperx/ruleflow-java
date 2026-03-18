@@ -1,6 +1,7 @@
 package com.gatekeeperx.ruleflow.visitors;
 
 import com.gatekeeperx.ruleflow.RuleFlowLanguageBaseVisitor;
+import com.gatekeeperx.ruleflow.functions.RuleflowFunction;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
 import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
 import com.gatekeeperx.ruleflow.errors.UnexpectedSymbolException;
@@ -24,10 +25,17 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
     private static final Logger logger = LoggerFactory.getLogger(RulesetVisitor.class);
     private final Map<String, ?> data;
     private final Map<String, List<?>> lists;
+    private final Map<String, RuleflowFunction> functions;
 
     public RulesetVisitor(Map<String, ?> data, Map<String, List<?>> lists) {
+        this(data, lists, Map.of());
+    }
+
+    public RulesetVisitor(Map<String, ?> data, Map<String, List<?>> lists,
+                          Map<String, RuleflowFunction> functions) {
         this.data = data;
         this.lists = lists;
+        this.functions = functions != null ? functions : Map.of();
     }
 
     @Override
@@ -37,7 +45,7 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
 
     @Override
     public WorkflowResult visitWorkflow(RuleFlowLanguageParser.WorkflowContext ctx) {
-        Visitor visitor = new Visitor(data, lists, data);
+        Visitor visitor = new Visitor(data, lists, data, functions);
         Set<String> warnings = new HashSet<>();
         List<WorkflowResult> matchedRules = new ArrayList<>();
         boolean error = false;
@@ -84,6 +92,14 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                 try {
                     Object visitedRule = visitor.visit(rule.rule_body().expr());
                     if (visitedRule instanceof Boolean && (Boolean) visitedRule) {
+                        for (var setClause : rule.rule_body().set_clause()) {
+                            Object value = visitor.visit(setClause.expr());
+                            String rawName = setClause.variable.getText(); // "$varName"
+                            visitor.setVariable(rawName.substring(1), value); // stored as "varName"
+                        }
+                        if (rule.rule_body().K_CONTINUE() != null) {
+                            continue; // variables set — keep evaluating subsequent rules and rulesets
+                        }
                         Object exprResult;
                         if (rule.rule_body().return_result().expr() != null) {
                             exprResult = visitor.visit(rule.rule_body().return_result().expr());
@@ -91,9 +107,9 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                             exprResult = rule.rule_body().return_result().state().ID().getText();
                         }
                         if(multiMatch) {
-                            matchedRules.add(workflowResult(rule, ctx, ruleSet, exprResult, warnings));
+                            matchedRules.add(workflowResult(rule, ctx, ruleSet, exprResult, warnings, visitor));
                         } else {
-                            return workflowResult(rule, ctx, ruleSet, exprResult, warnings);
+                            return workflowResult(rule, ctx, ruleSet, exprResult, warnings, visitor);
                         }
                     }
                 } catch (RuntimeException ex) {
@@ -135,6 +151,7 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                 warnings,
                 error
             );
+            result.setVariables(new HashMap<>(visitor.getVariables()));
             return result;
         }
 
@@ -167,9 +184,10 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                 error
             );
             result.setActionCalls(actionsList);
+            result.setVariables(new HashMap<>(evaluator.getVariables()));
             return result;
         } else if (ctx.default_clause().return_result().state() != null) {
-            return new WorkflowResult(
+            WorkflowResult result = new WorkflowResult(
                 removeSingleQuote(ctx.workflow_name().getText()),
                 "default",
                 "default",
@@ -181,6 +199,8 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                 actionsList,
                 error
             );
+            result.setVariables(new HashMap<>(evaluator.getVariables()));
+            return result;
         } else {
             throw new RuntimeException("No default result found");
         }
@@ -191,7 +211,8 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
         RuleFlowLanguageParser.WorkflowContext ctx,
         RuleFlowLanguageParser.RulesetsContext ruleSet,
         Object expr,
-        Set<String> warnings) {
+        Set<String> warnings,
+        Visitor visitor) {
         WorkflowResult result = new WorkflowResult(
             removeSingleQuote(ctx.workflow_name().getText()),
             removeSingleQuote(ruleSet.name().getText()),
@@ -199,6 +220,7 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
             expr.toString(),
             warnings
         );
+        result.setVariables(new HashMap<>(visitor.getVariables()));
         if (rule.rule_body().actions() == null) {
             return result;
         } else {

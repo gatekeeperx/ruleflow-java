@@ -20,7 +20,9 @@ ruleset_condition: expr K_THEN | L_PAREN expr R_PAREN K_THEN;
 
 rules: name L_PAREN? rule_body R_PAREN?;
 
-rule_body: expr ((K_THEN (K_WITH| K_AND)?  then_result = actions) | (K_RETURN result = return_result actions? ));
+rule_body: expr set_clause* ((K_THEN (K_WITH| K_AND)?  then_result = actions) | (K_RETURN result = return_result actions?) | K_CONTINUE);
+
+set_clause: K_SET variable=VARIABLE EQ_IC expr;
 
 name: string_literal;
 
@@ -46,6 +48,8 @@ param_pairs: param_pair (COMMA param_pair)*;
 param_pair: field_name = string_literal ':' field_value = actionParamValue;
 
 expr: L_PAREN expr R_PAREN                                                      #parenthesis
+    | VARIABLE                                                                  #variableRef
+    | base=expr DOT field=ID                                                    #memberAccess
     | left=expr op=(MULTIPLY | DIVIDE | MODULO) right=expr                      #mathMul
     | left=expr op=(ADD | MINUS) right=expr                                     #mathAdd
     | left=expr op=(LT | LT_EQ | GT | GT_EQ | EQ | EQ_IC | NOT_EQ) right=expr   #comparator
@@ -57,6 +61,7 @@ expr: L_PAREN expr R_PAREN                                                      
     | op = REGEX_STRIP L_PAREN value = validProperty COMMA regex = SQUOTA_STRING R_PAREN                       #regexlike
     | op=ABS L_PAREN left=expr R_PAREN                                          #unary
     | op=K_EVAL_IN_LIST L_PAREN listName=string_literal COMMA predicate=expr R_PAREN   #evalInList
+    | ID L_PAREN (expr (COMMA expr)*)? R_PAREN                                  #customFunctionCall
     | left=expr op=K_AND right=expr                                             #binaryAnd
     | left=expr op=K_OR right=expr                                              #binaryOr
     | dateParse #dateParseExpr
@@ -173,6 +178,8 @@ K_DATE: D A T E;
 K_DATETIME: D A T E T I M E;
 K_DATE_ADD: D A T E '_' A D D;
 K_DATE_SUBTRACT: D A T E '_' S U B T R A C T;
+K_SET: S E T;
+K_CONTINUE: C O N T I N U E;
 
 STRING_DISTANCE: 'string_distance' | 'stringDistance';
 PARTIAL_RATIO: 'partial_ratio' | 'partialRatio';
@@ -193,6 +200,7 @@ BOOLEAN_LITERAL: T R U E | F A L S E;
 DQUOTA_STRING: '"' ('\\'. | '\\"' | ~['"\\'])* '"';
 SQUOTA_STRING: '\'' ('\\'. | '\'\'' | ~('\'' | '\\'))* '\'';
 
+VARIABLE: '$' [a-zA-Z_] [a-zA-Z_0-9]*;
 ID: [a-zA-Z_] [a-zA-Z_0-9]*;
 
 SINGLE_LINE_COMMENT: '--' ~[\r\n]* -> channel(HIDDEN);

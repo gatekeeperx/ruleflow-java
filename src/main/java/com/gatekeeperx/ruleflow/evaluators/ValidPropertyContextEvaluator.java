@@ -17,11 +17,14 @@ public class ValidPropertyContextEvaluator implements ContextEvaluator<ValidProp
         Object result = visitor.getData().get(property);
         logger.debug("ValidProperty: property={}, result={}", property, result);
         if (ctx.property != null) {
-            if (result == null) {
-                String fieldName = getFirstTokenText(ctx);
+            String fieldName = getFirstTokenText(ctx);
+            Map<String, ?> propData = (ctx.root != null) ? visitor.getRoot() : visitor.getData();
+            Object fieldResult = propData.get(fieldName);
+            logger.debug("ValidProperty simple: fieldName={}, root={}, result={}", fieldName, ctx.root != null, fieldResult);
+            if (fieldResult == null) {
                 throw new PropertyNotFoundException(fieldName + " field cannot be found");
             }
-            return result;
+            return fieldResult;
         } else if (ctx.nestedProperty != null) {
             Map<String, ?> data = (ctx.root != null) ? visitor.getRoot() : visitor.getData();
             return getNestedValue(ctx, data);

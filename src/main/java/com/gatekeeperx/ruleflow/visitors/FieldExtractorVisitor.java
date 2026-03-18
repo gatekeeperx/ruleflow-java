@@ -10,6 +10,8 @@ public class FieldExtractorVisitor extends RuleFlowLanguageBaseVisitor<Void> {
   private final Set<String> inputFields = new HashSet<>();
   private final Set<String> featureFields = new HashSet<>();
   private final Set<String> listNames = new HashSet<>();
+  private final Set<String> functionNames = new HashSet<>();
+  private final Set<String> variableNames = new HashSet<>();
 
   public Set<String> getInputFields() {
     return inputFields;
@@ -21,6 +23,60 @@ public class FieldExtractorVisitor extends RuleFlowLanguageBaseVisitor<Void> {
 
   public Set<String> getListNames() {
     return listNames;
+  }
+
+  public Set<String> getFunctionNames() {
+    return functionNames;
+  }
+
+  public Set<String> getVariableNames() {
+    return variableNames;
+  }
+
+  @Override
+  public Void visitCustomFunctionCall(RuleFlowLanguageParser.CustomFunctionCallContext ctx) {
+    functionNames.add(ctx.ID().getText());
+    return visitChildren(ctx);
+  }
+
+  @Override
+  public Void visitSet_clause(RuleFlowLanguageParser.Set_clauseContext ctx) {
+    variableNames.add(ctx.variable.getText().substring(1)); // strip "$"
+    return visitChildren(ctx);
+  }
+
+  @Override
+  public Void visitVariableRef(RuleFlowLanguageParser.VariableRefContext ctx) {
+    return null; // variable references are not input fields
+  }
+
+  @Override
+  public Void visitMemberAccess(RuleFlowLanguageParser.MemberAccessContext ctx) {
+    String fullPath = buildPropertyPath(ctx);
+    if (fullPath != null) {
+      if (fullPath.startsWith("features.")) {
+        featureFields.add(fullPath.substring("features.".length()));
+      } else {
+        inputFields.add(fullPath);
+      }
+      return null; // full path handled, don't descend
+    }
+    // Non-property base (e.g. function call) — visit children to capture arg fields
+    return visitChildren(ctx);
+  }
+
+  private String buildPropertyPath(RuleFlowLanguageParser.MemberAccessContext ctx) {
+    String basePath;
+    if (ctx.base instanceof RuleFlowLanguageParser.PropertyContext) {
+      basePath = ((RuleFlowLanguageParser.PropertyContext) ctx.base).validProperty().getText();
+    } else if (ctx.base instanceof RuleFlowLanguageParser.MemberAccessContext) {
+      basePath = buildPropertyPath((RuleFlowLanguageParser.MemberAccessContext) ctx.base);
+      if (basePath == null) return null;
+    } else {
+      return null; // Non-property base (function call, arithmetic, etc.)
+    }
+    if (basePath.startsWith(".")) basePath = basePath.substring(1);
+    return basePath + "." + ctx.field.getText();
   }
 
   @Override

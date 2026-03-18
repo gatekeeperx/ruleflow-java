@@ -9,6 +9,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.CharStream;
 
+import com.gatekeeperx.ruleflow.functions.RuleflowFunction;
 import java.util.Map;
 
 public class Workflow {
@@ -29,7 +30,13 @@ public class Workflow {
     }
 
     public WorkflowResult evaluate(Map<String, Object> request) {
-        return evaluate(request, Map.of());
+        return new RulesetVisitor(request, Map.of()).visit(tree);
+    }
+
+    public WorkflowResult evaluate(Map<String, Object> request,
+                                   Map<String, List<?>> lists,
+                                   Map<String, RuleflowFunction> functions) {
+        return new RulesetVisitor(request, lists, functions).visit(tree);
     }
 
     public String validateAndGetWorkflowName() {

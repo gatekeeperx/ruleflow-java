@@ -1,4 +1,6 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.gatekeeperx.ruleflow.RuleFlowLanguageLexer;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
@@ -82,5 +84,50 @@ class FieldExtractorVisitorTest {
 
     assertEquals(Set.of("blacklistedUsers"), lists);
     assertEquals(Set.of("elem.userId", "userId"), inputs);
+  }
+
+  @Test
+  void testFunctionNamesExtraction() {
+    String workflow = """
+        WORKFLOW 'TestWorkflow'
+            RULESET 'Main'
+                'CheckScreening'
+                    screening(userId) == 'pass' AND score(age, income) > 700
+                    THEN
+                    action('approve')
+
+            DEFAULT
+            RETURN 'approved'
+        END
+        """;
+
+    FieldExtractorVisitor visitor = new FieldExtractorVisitor();
+    visitor.visit(parse(workflow));
+
+    assertEquals(Set.of("screening", "score"), visitor.getFunctionNames());
+    assertEquals(Set.of("userId", "age", "income"), visitor.getInputFields());
+  }
+
+  @Test
+  void testFunctionArgFieldsExtractedFromMemberAccess() {
+    String workflow = """
+        WORKFLOW 'TestWorkflow'
+            RULESET 'Main'
+                'CheckRiskScore'
+                    screening(userId).risk_score > 500
+                    THEN
+                    action('block')
+
+            DEFAULT
+            RETURN 'approved'
+        END
+        """;
+
+    FieldExtractorVisitor visitor = new FieldExtractorVisitor();
+    visitor.visit(parse(workflow));
+
+    assertEquals(Set.of("screening"), visitor.getFunctionNames());
+    assertTrue(visitor.getInputFields().contains("userId"));
+    assertFalse(visitor.getInputFields().contains("risk_score"));
   }
 }

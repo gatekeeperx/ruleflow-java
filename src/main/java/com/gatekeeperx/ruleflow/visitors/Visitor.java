@@ -14,8 +14,12 @@ import com.gatekeeperx.ruleflow.evaluators.DateOperationContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.DateParseExprContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.DateValueContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.DayOfWeekContextEvaluator;
+import com.gatekeeperx.ruleflow.evaluators.CustomFunctionCallContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.EvalInListContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.GeoOperationContextEvaluator;
+import com.gatekeeperx.ruleflow.evaluators.MemberAccessContextEvaluator;
+import com.gatekeeperx.ruleflow.evaluators.VariableRefContextEvaluator;
+import com.gatekeeperx.ruleflow.functions.RuleflowFunction;
 import com.gatekeeperx.ruleflow.evaluators.ListContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.MathAddContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.MathMulContextEvaluator;
@@ -28,6 +32,8 @@ import com.gatekeeperx.ruleflow.evaluators.UnaryContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.ValidPropertyContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.ValueContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.StringDistanceContextEvaluator;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -37,11 +43,20 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
     private final Map<String, ?> data;
     private final Map<String, List<?>> lists;
     private final Map<String, ?> root;
+    private final Map<String, RuleflowFunction> functions;
+    private final Map<List<Object>, Object> functionCallCache = new HashMap<>();
+    private final Map<String, Object> variables = new HashMap<>();
 
     public Visitor(Map<String, ?> data, Map<String, List<?>> lists, Map<String, ?> root) {
+        this(data, lists, root, Map.of());
+    }
+
+    public Visitor(Map<String, ?> data, Map<String, List<?>> lists, Map<String, ?> root,
+                   Map<String, RuleflowFunction> functions) {
         this.data = data;
         this.lists = lists != null ? lists : Map.of();
         this.root = root;
+        this.functions = functions != null ? functions : Map.of();
     }
 
     @Override
@@ -109,6 +124,15 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
                 return new GeoOperationContextEvaluator().evaluate((RuleFlowLanguageParser.GeoOperationContext) ctx, this);
             } else if (ctx instanceof RuleFlowLanguageParser.EvalInListContext) {
                 return new EvalInListContextEvaluator().evaluate((RuleFlowLanguageParser.EvalInListContext) ctx, this);
+            } else if (ctx instanceof RuleFlowLanguageParser.CustomFunctionCallContext) {
+                return new CustomFunctionCallContextEvaluator().evaluate(
+                    (RuleFlowLanguageParser.CustomFunctionCallContext) ctx, this);
+            } else if (ctx instanceof RuleFlowLanguageParser.VariableRefContext) {
+                return new VariableRefContextEvaluator().evaluate(
+                    (RuleFlowLanguageParser.VariableRefContext) ctx, this);
+            } else if (ctx instanceof RuleFlowLanguageParser.MemberAccessContext) {
+                return new MemberAccessContextEvaluator().evaluate(
+                    (RuleFlowLanguageParser.MemberAccessContext) ctx, this);
             } else {
                 throw new IllegalArgumentException("Operation not supported: " + ctx.getClass());
             }
@@ -127,5 +151,21 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
 
     public Map<String, ?> getRoot() {
         return root;
+    }
+
+    public Map<String, RuleflowFunction> getFunctions() {
+        return functions;
+    }
+
+    public Map<List<Object>, Object> getFunctionCallCache() {
+        return functionCallCache;
+    }
+
+    public Map<String, Object> getVariables() {
+        return variables;
+    }
+
+    public void setVariable(String name, Object value) {
+        variables.put(name, value);
     }
 }
