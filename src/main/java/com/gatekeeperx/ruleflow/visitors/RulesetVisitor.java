@@ -1,5 +1,6 @@
 package com.gatekeeperx.ruleflow.visitors;
 
+import com.gatekeeperx.ruleflow.RuleFlowLanguageLexer;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageBaseVisitor;
 import com.gatekeeperx.ruleflow.functions.RuleflowFunction;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
@@ -101,10 +102,18 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                             Object value = visitor.visit(setClause.expr());
                             String rawName = setClause.variable.getText();
                             String varName = rawName.substring(1);
-                            if (setClause.PLUS_EQ() != null) {
+                            if (setClause.compound_op != null) {
                                 Object existing = visitor.getVariables().get(varName);
                                 double existingVal = existing != null ? Double.parseDouble(existing.toString()) : 0.0;
-                                value = existingVal + Double.parseDouble(value.toString());
+                                double rhs = Double.parseDouble(value.toString());
+                                value = switch (setClause.compound_op.getType()) {
+                                    case RuleFlowLanguageLexer.PLUS_EQ     -> existingVal + rhs;
+                                    case RuleFlowLanguageLexer.MINUS_EQ    -> existingVal - rhs;
+                                    case RuleFlowLanguageLexer.MULTIPLY_EQ -> existingVal * rhs;
+                                    case RuleFlowLanguageLexer.DIVIDE_EQ   -> existingVal / rhs;
+                                    case RuleFlowLanguageLexer.MODULO_EQ   -> existingVal % rhs;
+                                    default -> rhs;
+                                };
                             }
                             visitor.setVariable(varName, value);
                         }
