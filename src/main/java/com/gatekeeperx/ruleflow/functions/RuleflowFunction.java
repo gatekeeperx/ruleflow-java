@@ -1,8 +1,8 @@
 package com.gatekeeperx.ruleflow.functions;
 
-import java.util.List;
+import java.util.Map;
 
 @FunctionalInterface
 public interface RuleflowFunction {
-    Object apply(List<Object> args);
+    Object apply(Map<String, Object> args);
 }

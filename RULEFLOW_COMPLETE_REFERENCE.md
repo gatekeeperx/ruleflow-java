@@ -16,6 +16,8 @@
 13. [Best Practices](#best-practices)
 14. [Language Reference](#language-reference)
 
+**New in this version:** named function arguments, string concatenation via `+`, `THEN … CONTINUE` action accumulation, always-true rules (no condition), `return` without an explicit result, variables snapshot per matched rule, custom function exceptions as warnings.
+
 ---
 
 ## Introduction
@@ -150,13 +152,15 @@ Used to compare values, numbers, strings, or fields.
 ### 3. Mathematical Operators
 Perform arithmetic calculations in expressions.
 
-| Operator | Description     | Example |
-|----------|----------------|---------|
-| +        | Addition       | `x + y` |
-| -        | Subtraction    | `x - y` |
-| *        | Multiplication | `x * y` |
-| /        | Division       | `x / y` |
-| % / mod  | Modulo         | `x % y`, `x mod y` |
+| Operator | Description                              | Example |
+|----------|------------------------------------------|---------|
+| +        | Addition (numeric) or string concat      | `x + y`, `'Hello ' + name` |
+| -        | Subtraction                              | `x - y` |
+| *        | Multiplication                           | `x * y` |
+| /        | Division                                 | `x / y` |
+| % / mod  | Modulo                                   | `x % y`, `x mod y` |
+
+**String concatenation:** When either operand of `+` is a non-numeric string, the operator concatenates instead of adding. `-` is always numeric.
 
 **Examples:**
 ```text
@@ -164,6 +168,8 @@ Perform arithmetic calculations in expressions.
 'rule6' order_id % 10 = 0 return sample
 'precedence' x + y * z = 15 return block  # multiplication first
 'parentheses' (x + y) * z = 80 return block
+'full_name' firstName + ' ' + lastName == 'John Doe' return matched
+'ref_code' 'TXN-' + transactionId == expected_ref return valid
 ```
 
 **Operator Precedence:** `*`, `/`, `%` → `+`, `-`
@@ -241,20 +247,41 @@ Perform calculations on collections.
 
 ## Rule Syntax
 
-Rules support two main syntaxes:
-
 ### 1. Return Syntax (Most Common)
 ```text
 'rule_name' expression return result [with actions]
 ```
 
-### 2. Then Syntax (Action-First)
+### 2. Always-True Rule (No Condition)
+Omit the condition to create a rule that always fires:
 ```text
-'rule_name' (expression then action(...))
+'rule_name' return result [with actions]
+'rule_name' set $var = expr return result
 ```
 
-### 3. Ruleset Conditions
-Rulesets can have optional conditions:
+Useful as a guaranteed catch-all inside a guarded ruleset, or as a fixed labelling step before `continue`.
+
+### 3. Return With No Explicit Result
+When `return` has no result value, the rule name is used as the result:
+```text
+'approved' amount < 500 return          -- result is "approved"
+```
+
+### 4. THEN Syntax — Fire Actions
+`THEN` fires one or more actions. Without `CONTINUE` the rule stops evaluation (result is the rule name); with `CONTINUE` actions are accumulated and evaluation proceeds:
+```text
+-- THEN without CONTINUE: stops evaluation, result = rule name
+'rule_name' expression then action('notify')
+
+-- THEN + CONTINUE: accumulates actions and keeps evaluating
+'rule_name' expression then flag_for_review continue
+'rule_name' expression then action('tag', {'type': 'vip'}) and log_event continue
+```
+
+Actions accumulated from `THEN … CONTINUE` rules are merged into the final result of whichever `RETURN` rule or `DEFAULT` clause eventually fires.
+
+### 5. Ruleset Conditions
+Rulesets can have optional conditions (guards):
 ```text
 ruleset 'premium_user_rules' user.is_premium = true then
     'rule1' amount > 1000 return block
@@ -267,7 +294,7 @@ ruleset 'always_evaluated'
     'rule1' suspicious_activity = true return block
 ```
 
-### 4. Parentheses
+### 6. Parentheses
 Parentheses around rule bodies are optional:
 ```text
 'rule1' (expression return result)
@@ -378,6 +405,54 @@ Parentheses around rule bodies are optional:
 'coord_distance' distance(lat1, lon1, lat2, lon2) < 100 return nearby
 'within_radius' within_radius(user_lat, user_lon, store_lat, store_lon, 50) return local_delivery
 ```
+
+### Custom Functions
+
+Register external logic (API calls, ML scores, lookups) callable from rule conditions.
+
+#### Calling in the DSL
+
+```text
+-- positional arguments
+'screen'    screening(userId) == 'pass' return approved
+'score'     riskScore(userId, country, amount) > 700 return review
+
+-- named arguments
+'kyc'       kyc(documentNumber: docId, fullName: firstName + ' ' + lastName) == 'pass' return approved
+
+-- member access on return value
+'risk'      screening(userId).risk_score > 500 return block
+'nested'    screening(userId).details.level == 'critical' return block
+'list_op'   screening(userId).tags.any { 'fraud' } return block
+```
+
+Named and positional args can be mixed. Named args are passed to the function under their declared name; positional args use `"0"`, `"1"`, etc.
+
+#### Java API
+
+```java
+// RuleflowFunction receives Map<String, Object>
+// Positional args use keys "0", "1", ...
+// Named args use their declared names
+RuleflowFunction screeningFn = args -> {
+    String userId = (String) args.get("0");       // first positional arg
+    return callExternalService(userId);
+};
+
+RuleflowFunction kycFn = args -> {
+    String docNumber = (String) args.get("documentNumber");  // named arg
+    String fullName  = (String) args.get("fullName");         // named arg
+    return verifyKyc(docNumber, fullName);
+};
+
+workflow.evaluate(data, lists, Map.of("screening", screeningFn, "kyc", kycFn));
+```
+
+#### Resilience
+
+- **Undefined function** — rule skipped with a warning; `isError()` stays `false`
+- **Function throws exception** — rule skipped with a warning containing the exception message; `isError()` stays `false`
+- **Memoization** — each `(functionName, args)` combination is computed at most once per evaluation
 
 ---
 
@@ -652,27 +727,47 @@ default return allow with action('log_decision', {'rule': 'default'})
 
 ## Error Handling and Warnings
 
-The RuleFlow engine provides robust error handling:
+The RuleFlow engine provides robust error handling. Individual rule failures never abort a workflow — the failed rule is skipped with a warning and evaluation continues.
 
 ### Missing Fields
 If a referenced field doesn't exist in the input data:
 - A warning is generated: `"field_name field cannot be found"`
-- The rule evaluation stops and the default result is returned
+- The rule is skipped; evaluation continues with the next rule
 
 ### Division by Zero
 ```text
 'safe_division' amount / quantity > 100 return expensive
-# If quantity = 0, generates warning and returns default
+# If quantity = 0, generates warning and skips rule
 ```
 
 ### Invalid Date Formats
 ```text
 'date_validation' date(invalid_date) = date('2024-01-01') return match
-# Invalid date strings generate warnings and return default
+# Invalid date strings generate warnings and skip rule
 ```
 
 ### Type Mismatches
-The engine handles type coercion gracefully but may generate warnings for unexpected type operations.
+The engine handles type coercion gracefully but generates warnings for incompatible type comparisons.
+
+### Undefined Custom Function
+```text
+'check' unknownFn(x) == 'ok' return approved
+# Warning: "Custom function 'unknownFn' is not defined"
+# Rule skipped; isError() stays false
+```
+
+### Custom Function Exception
+If a registered function throws at runtime:
+```text
+# Warning: "Custom function 'myFn' failed: <exception message>"
+# Rule skipped; isError() stays false
+```
+
+### Reading warnings
+```java
+Set<String> warnings = result.getWarnings();
+boolean hadError = result.isError();  // true only for unexpected engine-level failures
+```
 
 ---
 
@@ -816,8 +911,22 @@ end
 
 ## Language Reference
 
+### Variables per Matched Rule (multi_match)
+
+In `multi_match` mode each `MatchedRuleListItem` carries a snapshot of all variables at the moment that rule matched:
+
+```java
+List<MatchedRuleListItem> all = result.getMatchedRules();
+for (MatchedRuleListItem item : all) {
+    String rule           = item.getRule();
+    Map<String, Object> vars = item.getVariables();   // snapshot at match time
+}
+```
+
+---
+
 ### Reserved Keywords
-`workflow`, `ruleset`, `default`, `end`, `return`, `with`, `and`, `or`, `not`, `then`, `in`, `contains`, `starts_with`, `any`, `all`, `none`, `count`, `average`, `distinct`, `list`, `action`, `true`, `false`, `null`, `evaluation_mode`, `single_match`, `multi_match`
+`workflow`, `ruleset`, `default`, `end`, `return`, `with`, `and`, `or`, `not`, `then`, `continue`, `in`, `contains`, `starts_with`, `any`, `all`, `none`, `count`, `average`, `distinct`, `list`, `action`, `set`, `true`, `false`, `null`, `evaluation_mode`, `single_match`, `multi_match`
 
 ### Case Sensitivity
 - Keywords are case-insensitive: `WORKFLOW`, `workflow`, `Workflow` all work

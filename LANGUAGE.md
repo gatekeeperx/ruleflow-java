@@ -73,7 +73,7 @@ DEFAULT THEN allow             -- THEN keyword also accepted
 
 ## 2. Rules and Results
 
-Each rule has a name (single-quoted), a condition expression, and a result.
+Each rule has a name (single-quoted), an optional condition expression, and a result clause.
 
 ### RETURN — named result
 
@@ -82,13 +82,38 @@ Each rule has a name (single-quoted), a condition expression, and a result.
 'check_amount' amount > 1000 RETURN block          -- quotes are optional for simple identifiers
 ```
 
-### THEN — action-only result
+### Always-true rule (no condition)
 
-`THEN` is used when the result is expressed purely through actions (less common):
+Omit the condition entirely for a rule that always fires:
 
 ```
-'notify' score > 80 THEN action('send_alert')
+'fallback' RETURN low_risk                          -- no condition: always matches
+'label'    set $tier = 'standard' RETURN labelled   -- set + always-true
 ```
+
+Useful as a guaranteed catch-all inside a ruleset that already has a guard, or as a labelling step before `continue`.
+
+### RETURN with no explicit result
+
+When `RETURN` appears without a result value, the rule name is used as the result:
+
+```
+'approved' amount < 1000 RETURN                    -- result is "approved" (rule name)
+```
+
+### THEN — fire actions and optionally continue
+
+`THEN` fires one or more actions without requiring an explicit result value. Append `CONTINUE` to keep evaluating subsequent rules and rulesets instead of stopping:
+
+```
+-- THEN without CONTINUE: rule fires, result is rule name, evaluation stops
+'flag_account' score > 80 THEN action('send_alert')
+
+-- THEN + CONTINUE: actions are accumulated, evaluation continues
+'tag_high_value' amount > 1000 THEN flag_for_review CONTINUE
+```
+
+Actions accumulated from `THEN … CONTINUE` rules are merged into the final result — whether that result comes from a later `RETURN` rule or the `DEFAULT` clause.
 
 ### RETURN EXPR — dynamic result
 
@@ -233,12 +258,23 @@ currentDate()   -- returns today's date at runtime
 
 | Operator | Meaning |
 |---|---|
-| `+` | Addition |
+| `+` | Addition (numeric) or string concatenation |
 | `-` | Subtraction |
 | `*` | Multiplication |
 | `/` | Division |
 | `%` or `mod` | Modulo (remainder) |
 | `abs(expr)` | Absolute value |
+
+### String concatenation
+
+When either operand of `+` is a non-numeric string, the operator concatenates instead of adding:
+
+```
+firstName + ' ' + lastName == 'John Doe'
+'TXN-' + transactionId
+```
+
+Numeric operands are still added as numbers. Only `+` supports this dual behaviour; `-` is always numeric.
 
 ```
 'markup'     amount * 1.2 > 500 RETURN 'expensive'
@@ -246,6 +282,7 @@ currentDate()   -- returns today's date at runtime
 'even'       count % 2 = 0 RETURN 'even'
 'distance'   abs(delta) > 10 RETURN 'outlier'
 'combined'   (base + bonus) * multiplier > threshold RETURN 'qualified'
+'full_name'  firstName + ' ' + lastName == 'Jane Doe' RETURN 'matched'
 ```
 
 ---
@@ -536,17 +573,29 @@ Custom functions let you inject external logic — API calls, ML model scores, d
 ### Calling a custom function
 
 ```
-functionName(arg1, arg2, ...)
-functionName()                   -- no-arg function
+functionName(arg1, arg2, ...)       -- positional arguments
+functionName()                      -- no-arg function
+functionName(name: expr, ...)       -- named arguments
 ```
 
-Arguments can be any expression: property values, literals, math, or nested function calls.
+Arguments can be any expression: property values, literals, math, string concatenation, or nested function calls.
 
 ```
 'screen'    screening(userId) = 'pass' RETURN 'approved'
 'score'     riskScore(userId, country, amount) > 700 RETURN 'review'
 'flag'      isBlocked(deviceId) RETURN 'blocked'
 ```
+
+### Named arguments
+
+Pass arguments by name for clarity. Named and positional arguments can be mixed:
+
+```
+screening(documentNumber: docId, fullName: firstName + ' ' + lastName) == 'pass'
+enrich(userId, source: 'internal')
+```
+
+Named args are passed to the function under their declared name; positional args use `"0"`, `"1"`, etc.
 
 ### Member access on function return value
 
@@ -560,15 +609,26 @@ screening(userId).tags.any { 'fraud' }
 
 ### Registering functions (Java API)
 
+`RuleflowFunction` receives a `Map<String, Object>` where keys are argument names (`"0"`, `"1"`, … for positional; declared names for named args):
+
 ```java
 RuleflowFunction screeningFn = args -> {
-    String userId = (String) args.get(0);
-    // call your service
+    String userId = (String) args.get("0");         // positional
     return Map.of("risk_score", 750, "label", "high", "tags", List.of("fraud"));
 };
 
-workflow.evaluate(requestData, lists, Map.of("screening", screeningFn));
+RuleflowFunction enrichFn = args -> {
+    String id     = (String) args.get("0");         // positional first arg
+    String source = (String) args.get("source");    // named arg
+    return callExternalService(id, source);
+};
+
+workflow.evaluate(requestData, lists, Map.of("screening", screeningFn, "enrich", enrichFn));
 ```
+
+### Function failures are warnings
+
+If a registered function throws an exception, the rule is skipped with a warning and evaluation continues — the same resilience as a missing property. The workflow never errors out due to a function exception, and `result.isError()` remains `false`.
 
 ### Memoization
 
@@ -654,7 +714,7 @@ Object score = vars.get("base_score");
 
 ## 16. continue — Score and Proceed
 
-`continue` lets a rule fire its `set` clauses and then keep evaluating — without returning a final result. This is the standard pattern for multi-step scoring workflows where some rulesets assign scores and later rulesets make decisions based on those scores.
+`continue` lets a rule fire its `set` clauses (and optionally accumulate actions) and then keep evaluating — without returning a final result. This is the standard pattern for multi-step scoring workflows where some rulesets assign scores and later rulesets make decisions based on those scores.
 
 ### Syntax
 
@@ -669,6 +729,34 @@ A rule with `continue`:
 - Executes all `set` clauses if the condition is true
 - Does **not** return a result — evaluation continues to the next rule in the same ruleset, and then to subsequent rulesets
 - Does **not** appear in `getMatchedRules()` (even in `multi_match` mode)
+
+### THEN … CONTINUE — accumulate actions and keep evaluating
+
+Combine `THEN` with `CONTINUE` to fire actions without stopping evaluation. The actions are accumulated and merged into whichever result finally fires (a later `RETURN` rule or `DEFAULT`):
+
+```
+'<rule_name>'  <condition>
+    THEN action('some_action') [AND action('another')]
+    CONTINUE
+```
+
+**Example:** tag a transaction and let the decision ruleset handle the final result:
+
+```
+workflow 'screening'
+    ruleset 'tagging'
+        'high_value'  amount > 10000 THEN flag_compliance CONTINUE
+        'new_account' account_age_days < 30 THEN tag_new_account CONTINUE
+
+    ruleset 'decision'
+        'block' is_blocked == true RETURN block AND notify_ops
+        'review' risk_score > 700  RETURN review
+
+    DEFAULT allow
+END
+```
+
+If `amount > 10000` and `is_blocked == true`, the final result is `block` with both `flag_compliance` and `notify_ops` in the action list.
 
 ### Example: multi-step onboarding risk
 
@@ -782,6 +870,15 @@ List<MatchedRuleListItem> all = result.getMatchedRules();
 
 In multi_match mode, `set` variables accumulate across all matched rules, and the final `getVariables()` snapshot reflects all assignments made throughout the evaluation.
 
+Each `MatchedRuleListItem` also carries its own **variables snapshot** — the state of all variables at the moment that rule matched:
+
+```java
+List<MatchedRuleListItem> all = result.getMatchedRules();
+for (MatchedRuleListItem item : all) {
+    Map<String, Object> varsAtMatch = item.getVariables();
+}
+```
+
 ---
 
 ## 19. Error Handling and Warnings
@@ -795,6 +892,7 @@ RuleFlow is designed for resilience: individual rule failures do not abort the w
 | Property not found in data | `"<field> field cannot be found"` |
 | Type mismatch in comparison | `"There is a comparison between different dataTypes in rule <name>"` |
 | Undefined custom function | `"Custom function '<name>' is not defined"` |
+| Custom function throws an exception | `"Custom function '<name>' failed: <message>"` |
 | Missing property in action params | Resolution failure warning |
 
 ### Reading warnings

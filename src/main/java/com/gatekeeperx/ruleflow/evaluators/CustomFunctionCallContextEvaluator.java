@@ -7,9 +7,9 @@ import com.gatekeeperx.ruleflow.errors.UnexpectedSymbolException;
 import com.gatekeeperx.ruleflow.visitors.Visitor;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class CustomFunctionCallContextEvaluator
         implements ContextEvaluator<RuleFlowLanguageParser.CustomFunctionCallContext> {
@@ -24,21 +24,31 @@ public class CustomFunctionCallContextEvaluator
             throw new UnexpectedSymbolException("Custom function '" + functionName + "' is not defined");
         }
 
-        List<Object> args = ctx.expr().stream()
-                .map(visitor::visit)
-                .collect(Collectors.toList());
+        Map<String, Object> args = new LinkedHashMap<>();
+        int positionalIndex = 0;
+        for (RuleFlowLanguageParser.FuncCallArgContext argCtx : ctx.funcCallArg()) {
+            if (argCtx.argName != null) {
+                args.put(argCtx.argName.getText(), visitor.visit(argCtx.argValue));
+            } else {
+                args.put(String.valueOf(positionalIndex++), visitor.visit(argCtx.argValue));
+            }
+        }
 
         List<Object> cacheKey = new ArrayList<>();
         cacheKey.add(functionName);
-        cacheKey.addAll(args);
+        cacheKey.add(args);
 
         Map<List<Object>, Object> cache = visitor.getFunctionCallCache();
         if (cache.containsKey(cacheKey)) {
             return cache.get(cacheKey);
         }
 
-        Object result = function.apply(args);
-        cache.put(cacheKey, result);
-        return result;
+        try {
+            Object result = function.apply(args);
+            cache.put(cacheKey, result);
+            return result;
+        } catch (Exception e) {
+            throw new UnexpectedSymbolException("Custom function '" + functionName + "' failed: " + e.getMessage());
+        }
     }
 }

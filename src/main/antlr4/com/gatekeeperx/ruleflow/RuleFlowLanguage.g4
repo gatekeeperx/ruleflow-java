@@ -20,7 +20,7 @@ ruleset_condition: expr K_THEN | L_PAREN expr R_PAREN K_THEN;
 
 rules: name L_PAREN? rule_body R_PAREN?;
 
-rule_body: expr set_clause* ((K_THEN (K_WITH| K_AND)?  then_result = actions) | (K_RETURN result = return_result actions?) | K_CONTINUE);
+rule_body: expr? set_clause* ((K_THEN (K_WITH | K_AND)? then_result=actions K_CONTINUE?) | (K_RETURN result=return_result? actions?) | K_CONTINUE);
 
 set_clause: K_SET variable=VARIABLE EQ_IC expr;
 
@@ -47,6 +47,10 @@ param_pairs: param_pair (COMMA param_pair)*;
 
 param_pair: field_name = string_literal ':' field_value = actionParamValue;
 
+funcCallArg: argName=ID K_COLON argValue=expr   // named: name: expr
+           | argValue=expr                        // positional
+           ;
+
 expr: L_PAREN expr R_PAREN                                                      #parenthesis
     | VARIABLE                                                                  #variableRef
     | base=expr DOT field=ID                                                    #memberAccess
@@ -61,7 +65,7 @@ expr: L_PAREN expr R_PAREN                                                      
     | op = REGEX_STRIP L_PAREN value = validProperty COMMA regex = SQUOTA_STRING R_PAREN                       #regexlike
     | op=ABS L_PAREN left=expr R_PAREN                                          #unary
     | op=K_EVAL_IN_LIST L_PAREN listName=string_literal COMMA predicate=expr R_PAREN   #evalInList
-    | ID L_PAREN (expr (COMMA expr)*)? R_PAREN                                  #customFunctionCall
+    | ID L_PAREN (funcCallArg (COMMA funcCallArg)*)? R_PAREN                    #customFunctionCall
     | left=expr op=K_AND right=expr                                             #binaryAnd
     | left=expr op=K_OR right=expr                                              #binaryOr
     | dateParse #dateParseExpr
