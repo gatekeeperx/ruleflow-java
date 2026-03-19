@@ -141,6 +141,27 @@ public class SetStatementTest {
     }
 
     @Test
+    void testCompoundAssignRhsIsExpr() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'pricing'
+                    'base'     amount > 0 set $price = amount continue
+                    'discount' discount > 0 set $price -= amount * discount / 100 continue
+                    'tax'      return done
+                default allow
+            end
+            """;
+
+        // $price = 200 - (200 * 10 / 100) = 200 - 20 = 180
+        WorkflowResult result = new Workflow(workflow).evaluate(
+            Map.of("amount", 200, "discount", 10), Map.of()
+        );
+
+        assertEquals("done", result.getResult());
+        assertEquals(180.0, ((Number) result.getVariables().get("price")).doubleValue(), 0.001);
+    }
+
+    @Test
     void testDefaultResultHasEmptyVariables() {
         String workflow = String.format(TEMPLATE,
             "'rule1' amount > 1000 set $x = 1 return flagged");
