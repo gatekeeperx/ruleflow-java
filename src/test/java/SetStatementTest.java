@@ -141,6 +141,29 @@ public class SetStatementTest {
     }
 
     @Test
+    void testSetBooleanExpr() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'flags'
+                    'set_flag' set $isHigh = amount > 100 continue
+                ruleset 'decision'
+                    'high' $isHigh return high_risk
+                    'low'  return low_risk
+                default allow
+            end
+            """;
+
+        WorkflowResult trueResult = new Workflow(workflow).evaluate(Map.of("amount", 200), Map.of());
+        WorkflowResult falseResult = new Workflow(workflow).evaluate(Map.of("amount", 50), Map.of());
+
+        assertEquals("high_risk", trueResult.getResult());
+        assertEquals(true, trueResult.getVariables().get("isHigh"));
+
+        assertEquals("low_risk", falseResult.getResult());
+        assertEquals(false, falseResult.getVariables().get("isHigh"));
+    }
+
+    @Test
     void testCompoundAssignRhsIsExpr() {
         String workflow = """
             workflow 'test'
