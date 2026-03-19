@@ -100,7 +100,13 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                         for (var setClause : rule.rule_body().set_clause()) {
                             Object value = visitor.visit(setClause.expr());
                             String rawName = setClause.variable.getText();
-                            visitor.setVariable(rawName.substring(1), value);
+                            String varName = rawName.substring(1);
+                            if (setClause.PLUS_EQ() != null) {
+                                Object existing = visitor.getVariables().get(varName);
+                                double existingVal = existing != null ? Double.parseDouble(existing.toString()) : 0.0;
+                                value = existingVal + Double.parseDouble(value.toString());
+                            }
+                            visitor.setVariable(varName, value);
                         }
 
                         if (rule.rule_body().K_THEN() != null) {
@@ -122,6 +128,12 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                                     return wr;
                                 }
                             }
+                        } else if (rule.rule_body().inline_actions != null) {
+                            // Inline actions + continue (no THEN keyword)
+                            Pair<List<Action>, Map<String, Map<String, String>>> resolved =
+                                resolveActions(rule.rule_body().inline_actions);
+                            accumulatedActions.addAll(resolved.getKey());
+                            continue;
                         } else if (rule.rule_body().K_CONTINUE() != null) {
                             // CONTINUE only (no THEN): set vars and continue
                             continue;

@@ -20,9 +20,10 @@ ruleset_condition: expr K_THEN | L_PAREN expr R_PAREN K_THEN;
 
 rules: name L_PAREN? rule_body R_PAREN?;
 
-rule_body: expr? set_clause* ((K_THEN (K_WITH | K_AND)? then_result=actions K_CONTINUE?) | (K_RETURN result=return_result? actions?) | K_CONTINUE);
+rule_body: expr? set_clause* ((K_THEN (K_WITH | K_AND)? then_result=actions K_CONTINUE?) | (K_RETURN result=return_result? actions?) | (inline_actions=actions K_CONTINUE) | K_CONTINUE);
 
-set_clause: K_SET variable=VARIABLE EQ_IC expr;
+set_clause: K_SET variable=VARIABLE EQ_IC expr
+          | K_SET variable=VARIABLE PLUS_EQ expr;
 
 name: string_literal;
 
@@ -59,7 +60,7 @@ expr: L_PAREN expr R_PAREN                                                      
     | left=expr op=(LT | LT_EQ | GT | GT_EQ | EQ | EQ_IC | NOT_EQ) right=expr   #comparator
     | value=expr not=K_NOT? op=(K_CONTAINS | K_IN | K_STARTS_WITH) values=listElems #list
     | value=propertyTuple not=K_NOT? op=(K_CONTAINS | K_IN | K_STARTS_WITH) values=listElems #tupleList
-    | value=expr DOT op=(K_COUNT | K_AVERAGE | K_ANY | K_ALL | K_DISTINCT | K_NONE)
+    | value=expr DOT op=(K_COUNT | K_AVERAGE | K_ANY | K_ALL | K_DISTINCT | K_NONE | K_CONTAINS)
       (L_BRACE predicate=expr R_BRACE | L_PAREN R_PAREN)                       #aggregation
     | dateExpr                                                                  #dateOperation
     | op = REGEX_STRIP L_PAREN value = validProperty COMMA regex = SQUOTA_STRING R_PAREN                       #regexlike
@@ -130,6 +131,7 @@ GT: '>';
 GT_EQ: '>=';
 EQ_IC: '=';
 EQ: '==';
+PLUS_EQ: '+=';
 NOT_EQ: '<>';
 MINUTE: 'minute';
 HOUR: 'hour';
