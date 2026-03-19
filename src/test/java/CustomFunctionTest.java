@@ -43,8 +43,8 @@ public class CustomFunctionTest {
             "'high score' score(age, income) >= 700 return approved");
 
         RuleflowFunction fn = args -> {
-            int age = ((Number) args.get(0)).intValue();
-            int income = ((Number) args.get(1)).intValue();
+            int age = ((Number) args.get("0")).intValue();
+            int income = ((Number) args.get("1")).intValue();
             return age + income;
         };
 
@@ -260,5 +260,74 @@ public class CustomFunctionTest {
         );
 
         Assertions.assertEquals("yes", result.getResult());
+    }
+
+    // -------------------------------------------------------------------------
+    // Named arguments
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void testNamedArgs() {
+        String workflow = String.format(SIMPLE_WORKFLOW_TEMPLATE,
+            "'match' screening(documentNumber: docId, fullName: name) == 'pass' return approved");
+
+        RuleflowFunction fn = args -> {
+            String docNumber = (String) args.get("documentNumber");
+            String fullName = (String) args.get("fullName");
+            return (docNumber != null && fullName != null) ? "pass" : "fail";
+        };
+
+        WorkflowResult result = new Workflow(workflow).evaluate(
+            Map.of("docId", "DOC123", "name", "John Doe"),
+            Map.of(),
+            Map.of("screening", fn)
+        );
+
+        Assertions.assertEquals("approved", result.getResult());
+    }
+
+    @Test
+    public void testNamedArgWithStringConcat() {
+        String workflow = String.format(SIMPLE_WORKFLOW_TEMPLATE,
+            "'match' screening(fullName: firstName + ' ' + lastName) == 'pass' return approved");
+
+        RuleflowFunction fn = args -> {
+            String fullName = (String) args.get("fullName");
+            return "John Doe".equals(fullName) ? "pass" : "fail";
+        };
+
+        WorkflowResult result = new Workflow(workflow).evaluate(
+            Map.of("firstName", "John", "lastName", "Doe"),
+            Map.of(),
+            Map.of("screening", fn)
+        );
+
+        Assertions.assertEquals("approved", result.getResult());
+    }
+
+    // -------------------------------------------------------------------------
+    // Function failure → warning, not error
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void testFunctionFailureIsWarning() {
+        String workflow = String.format(SIMPLE_WORKFLOW_TEMPLATE,
+            "'match' failingFn(x) == 'ok' return approved");
+
+        RuleflowFunction fn = args -> {
+            throw new RuntimeException("external service unavailable");
+        };
+
+        WorkflowResult result = new Workflow(workflow).evaluate(
+            Map.of("x", "val"),
+            Map.of(),
+            Map.of("failingFn", fn)
+        );
+
+        Assertions.assertEquals("allow", result.getResult());
+        Assertions.assertFalse(result.isError());
+        Assertions.assertFalse(result.getWarnings().isEmpty());
+        Assertions.assertTrue(result.getWarnings().stream()
+            .anyMatch(w -> w.contains("failingFn")));
     }
 }

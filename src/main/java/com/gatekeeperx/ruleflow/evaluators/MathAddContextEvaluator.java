@@ -14,20 +14,32 @@ public class MathAddContextEvaluator implements ContextEvaluator<MathAddContext>
         Object leftVal = visitor.visit(ctx.left);
         Object rightVal = visitor.visit(ctx.right);
 
-        Double left = Double.valueOf(leftVal.toString());
-        Double right = Double.valueOf(rightVal.toString());
         Object result;
         switch (ctx.op.getType()) {
             case RuleFlowLanguageLexer.ADD:
-                result = left + right;
+                if (canParseDouble(leftVal) && canParseDouble(rightVal)) {
+                    result = Double.valueOf(leftVal.toString()) + Double.valueOf(rightVal.toString());
+                } else {
+                    result = leftVal.toString() + rightVal.toString();
+                }
                 break;
             case RuleFlowLanguageLexer.MINUS:
-                result = left - right;
+                result = Double.valueOf(leftVal.toString()) - Double.valueOf(rightVal.toString());
                 break;
             default:
                 throw new IllegalArgumentException("Operation not supported: " + ctx.op.getText());
         }
-        logger.debug("MathAdd: left={}, right={}, op={}, result={}", left, right, ctx.op.getText(), result);
+        logger.debug("MathAdd: left={}, right={}, op={}, result={}", leftVal, rightVal, ctx.op.getText(), result);
         return result;
+    }
+
+    private boolean canParseDouble(Object val) {
+        if (val == null) return false;
+        try {
+            Double.parseDouble(val.toString());
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }

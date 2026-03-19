@@ -302,6 +302,7 @@ public class WorkflowResult {
         @Deprecated
         private Map<String, Map<String, String>> actionsWithParams;
         private List<Action> actionCalls;
+        private Map<String, Object> variables = new HashMap<>();
 
         public MatchedRuleListItem(String ruleSet, String rule, String result,
             Set<String> actions, Map<String, Map<String, String>> actionsWithParams) {
@@ -321,6 +322,18 @@ public class WorkflowResult {
             this.actions = actions;
             this.actionsWithParams = actionsWithParams;
             this.actionCalls = actionCalls != null ? new ArrayList<>(actionCalls) : new ArrayList<>();
+        }
+
+        public MatchedRuleListItem(String ruleSet, String rule, String result,
+            Set<String> actions, Map<String, Map<String, String>> actionsWithParams, List<Action> actionCalls,
+            Map<String, Object> variables) {
+            this.ruleSet = ruleSet;
+            this.rule = rule;
+            this.result = result;
+            this.actions = actions;
+            this.actionsWithParams = actionsWithParams;
+            this.actionCalls = actionCalls != null ? new ArrayList<>(actionCalls) : new ArrayList<>();
+            this.variables = variables != null ? new HashMap<>(variables) : new HashMap<>();
         }
 
         public String getRuleSet() {
@@ -385,6 +398,14 @@ public class WorkflowResult {
                 this.actionsWithParams = convertActionCallsToActionsWithParams(this.actionCalls);
             }
             this.actions = this.actionCalls.stream().map(Action::getName).collect(Collectors.toSet());
+        }
+
+        public Map<String, Object> getVariables() {
+            return variables;
+        }
+
+        public void setVariables(Map<String, Object> variables) {
+            this.variables = variables != null ? new HashMap<>(variables) : new HashMap<>();
         }
 
     }

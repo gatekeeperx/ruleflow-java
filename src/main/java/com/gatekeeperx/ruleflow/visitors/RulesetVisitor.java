@@ -1,5 +1,6 @@
 package com.gatekeeperx.ruleflow.visitors;
 
+import com.gatekeeperx.ruleflow.RuleFlowLanguageLexer;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageBaseVisitor;
 import com.gatekeeperx.ruleflow.functions.RuleflowFunction;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
@@ -48,6 +49,7 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
         Visitor visitor = new Visitor(data, lists, data, functions);
         Set<String> warnings = new HashSet<>();
         List<WorkflowResult> matchedRules = new ArrayList<>();
+        List<Action> accumulatedActions = new ArrayList<>();
         boolean error = false;
         boolean multiMatch = ctx.configuration() != null &&
             ctx.configuration().evaluation_mode() != null &&
@@ -90,26 +92,89 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
             }
             for (RuleFlowLanguageParser.RulesContext rule : ruleSet.rules()) {
                 try {
-                    Object visitedRule = visitor.visit(rule.rule_body().expr());
+                    // expr? — null means always-true rule
+                    Object visitedRule = rule.rule_body().expr() != null
+                        ? visitor.visit(rule.rule_body().expr())
+                        : Boolean.TRUE;
+
                     if (visitedRule instanceof Boolean && (Boolean) visitedRule) {
                         for (var setClause : rule.rule_body().set_clause()) {
                             Object value = visitor.visit(setClause.expr());
-                            String rawName = setClause.variable.getText(); // "$varName"
-                            visitor.setVariable(rawName.substring(1), value); // stored as "varName"
+                            String rawName = setClause.variable.getText();
+                            String varName = rawName.substring(1);
+                            if (setClause.compound_op != null) {
+                                Object existing = visitor.getVariables().get(varName);
+                                double existingVal = existing != null ? Double.parseDouble(existing.toString()) : 0.0;
+                                double rhs = Double.parseDouble(value.toString());
+                                value = switch (setClause.compound_op.getType()) {
+                                    case RuleFlowLanguageLexer.PLUS_EQ     -> existingVal + rhs;
+                                    case RuleFlowLanguageLexer.MINUS_EQ    -> existingVal - rhs;
+                                    case RuleFlowLanguageLexer.MULTIPLY_EQ -> existingVal * rhs;
+                                    case RuleFlowLanguageLexer.DIVIDE_EQ   -> existingVal / rhs;
+                                    case RuleFlowLanguageLexer.MODULO_EQ   -> existingVal % rhs;
+                                    default -> rhs;
+                                };
+                            }
+                            visitor.setVariable(varName, value);
                         }
-                        if (rule.rule_body().K_CONTINUE() != null) {
-                            continue; // variables set — keep evaluating subsequent rules and rulesets
-                        }
-                        Object exprResult;
-                        if (rule.rule_body().return_result().expr() != null) {
-                            exprResult = visitor.visit(rule.rule_body().return_result().expr());
+
+                        if (rule.rule_body().K_THEN() != null) {
+                            // THEN branch
+                            Pair<List<Action>, Map<String, Map<String, String>>> resolved =
+                                resolveActions(rule.rule_body().then_result);
+                            if (rule.rule_body().K_CONTINUE() != null) {
+                                // THEN + CONTINUE: accumulate actions, keep evaluating
+                                accumulatedActions.addAll(resolved.getKey());
+                                continue;
+                            } else {
+                                // THEN without CONTINUE: return with rule name as result
+                                String exprResult = removeSingleQuote(rule.name().getText());
+                                List<Action> allActions = mergeActions(accumulatedActions, resolved.getKey());
+                                WorkflowResult wr = workflowResult(rule, ctx, ruleSet, exprResult, warnings, visitor, allActions);
+                                if (multiMatch) {
+                                    matchedRules.add(wr);
+                                } else {
+                                    return wr;
+                                }
+                            }
+                        } else if (rule.rule_body().inline_actions != null) {
+                            // Inline actions + continue (no THEN keyword)
+                            Pair<List<Action>, Map<String, Map<String, String>>> resolved =
+                                resolveActions(rule.rule_body().inline_actions);
+                            accumulatedActions.addAll(resolved.getKey());
+                            continue;
+                        } else if (rule.rule_body().K_CONTINUE() != null) {
+                            // CONTINUE only (no THEN): set vars and continue
+                            continue;
                         } else {
-                            exprResult = rule.rule_body().return_result().state().ID().getText();
-                        }
-                        if(multiMatch) {
-                            matchedRules.add(workflowResult(rule, ctx, ruleSet, exprResult, warnings, visitor));
-                        } else {
-                            return workflowResult(rule, ctx, ruleSet, exprResult, warnings, visitor);
+                            // RETURN branch
+                            Object exprResult;
+                            if (rule.rule_body().result != null) {
+                                if (rule.rule_body().result.expr() != null) {
+                                    exprResult = visitor.visit(rule.rule_body().result.expr());
+                                } else {
+                                    exprResult = rule.rule_body().result.state().ID().getText();
+                                }
+                            } else {
+                                // return_result absent — use rule name
+                                exprResult = removeSingleQuote(rule.name().getText());
+                            }
+                            // Merge accumulated actions with this rule's own actions
+                            List<Action> ruleActions = new ArrayList<>();
+                            if (rule.rule_body().actions() != null) {
+                                try {
+                                    ruleActions = resolveActions(rule.rule_body().actions()).getKey();
+                                } catch (ActionParameterResolutionException ex) {
+                                    warnings.add(ex.getMessage());
+                                }
+                            }
+                            List<Action> allActions = mergeActions(accumulatedActions, ruleActions);
+                            WorkflowResult wr = workflowResult(rule, ctx, ruleSet, exprResult, warnings, visitor, allActions);
+                            if (multiMatch) {
+                                matchedRules.add(wr);
+                            } else {
+                                return wr;
+                            }
                         }
                     }
                 } catch (RuntimeException ex) {
@@ -136,7 +201,7 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                 }
             }
         }
-        if(!matchedRules.isEmpty()) {
+        if (!matchedRules.isEmpty()) {
             WorkflowResult result = new WorkflowResult(
                 ctx.workflow_name().getText().replace("'", ""),
                 matchedRules.get(0).getRuleSet(),
@@ -146,7 +211,8 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
                 matchedRules.get(0).getActionCalls(),
                 matchedRules.stream().map(it ->
                         new MatchedRuleListItem(it.getRuleSet(), it.getRule(),
-                            it.getResult(), it.getActions(), it.getActionsWithParams(), it.getActionCalls()))
+                            it.getResult(), it.getActions(), it.getActionsWithParams(),
+                            it.getActionCalls(), it.getVariables()))
                     .toList(),
                 warnings,
                 error
@@ -155,21 +221,24 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
             return result;
         }
 
-        return resolveDefaultResult(ctx, warnings, error,  visitor);
+        return resolveDefaultResult(ctx, warnings, error, visitor, accumulatedActions);
     }
 
     private WorkflowResult resolveDefaultResult(
         RuleFlowLanguageParser.WorkflowContext ctx,
         Set<String> warnings,
         boolean error,
-        Visitor evaluator) {
-        List<Action> actionsList = new ArrayList<>();
+        Visitor evaluator,
+        List<Action> accumulatedActions) {
+        List<Action> actionsList = new ArrayList<>(accumulatedActions);
         Map<String, Map<String, String>> actionsMap = new HashMap<>();
+        // populate map from accumulated actions
+        accumulatedActions.forEach(a -> actionsMap.put(a.getName(), a.getParams()));
 
         if (ctx.default_clause().actions() != null) {
             Pair<List<Action>, Map<String, Map<String, String>>> resolvedActions = resolveActions(ctx.default_clause().actions());
-            actionsList = resolvedActions.getKey();
-            actionsMap = resolvedActions.getValue();
+            actionsList.addAll(resolvedActions.getKey());
+            actionsMap.putAll(resolvedActions.getValue());
         }
 
         if (ctx.default_clause().return_result().expr() != null) {
@@ -212,7 +281,8 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
         RuleFlowLanguageParser.RulesetsContext ruleSet,
         Object expr,
         Set<String> warnings,
-        Visitor visitor) {
+        Visitor visitor,
+        List<Action> allActions) {
         WorkflowResult result = new WorkflowResult(
             removeSingleQuote(ctx.workflow_name().getText()),
             removeSingleQuote(ruleSet.name().getText()),
@@ -221,19 +291,23 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
             warnings
         );
         result.setVariables(new HashMap<>(visitor.getVariables()));
-        if (rule.rule_body().actions() == null) {
-            return result;
-        } else {
-            try {
-                Pair<List<Action>, Map<String, Map<String, String>>> resolvedActions = resolveActions(rule.rule_body().actions());
-                result.setActionCalls(resolvedActions.getKey(), false);
-                result.setActionsWithParams(resolvedActions.getValue(), false);
-            } catch (ActionParameterResolutionException ex) {
-                warnings.add(ex.getMessage());
-                // Return the result without actions - the rule still matches and returns its result
-            }
-            return result;
+        // Build actionsWithParams with copies to avoid mutating action param maps
+        Map<String, Map<String, String>> actionsWithParams = new HashMap<>();
+        for (Action a : allActions) {
+            actionsWithParams.merge(a.getName(), new HashMap<>(a.getParams()), (existing, replacement) -> {
+                existing.putAll(replacement);
+                return existing;
+            });
         }
+        result.setActionCalls(allActions, false);
+        result.setActionsWithParams(actionsWithParams, false);
+        return result;
+    }
+
+    private List<Action> mergeActions(List<Action> accumulated, List<Action> ruleActions) {
+        List<Action> merged = new ArrayList<>(accumulated);
+        merged.addAll(ruleActions);
+        return merged;
     }
 
     private Pair<List<Action>, Map<String, Map<String, String>>> resolveActions(RuleFlowLanguageParser.ActionsContext rule) {
@@ -243,7 +317,7 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
         Map<String, Map<String, String>> actionsMap = actions.stream()
             .collect(Collectors.toMap(Map.Entry::getKey, entry -> new HashMap<>(entry.getValue()),
                 (existing, replacement) -> {
-                    existing.putAll(replacement); // merging the two maps
+                    existing.putAll(replacement);
                     return existing;
                 }));
         return new Pair<>(actionsList, actionsMap);

@@ -141,6 +141,50 @@ public class SetStatementTest {
     }
 
     @Test
+    void testSetBooleanExpr() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'flags'
+                    'set_flag' set $isHigh = amount > 100 continue
+                ruleset 'decision'
+                    'high' $isHigh return high_risk
+                    'low'  return low_risk
+                default allow
+            end
+            """;
+
+        WorkflowResult trueResult = new Workflow(workflow).evaluate(Map.of("amount", 200), Map.of());
+        WorkflowResult falseResult = new Workflow(workflow).evaluate(Map.of("amount", 50), Map.of());
+
+        assertEquals("high_risk", trueResult.getResult());
+        assertEquals(true, trueResult.getVariables().get("isHigh"));
+
+        assertEquals("low_risk", falseResult.getResult());
+        assertEquals(false, falseResult.getVariables().get("isHigh"));
+    }
+
+    @Test
+    void testCompoundAssignRhsIsExpr() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'pricing'
+                    'base'     amount > 0 set $price = amount continue
+                    'discount' discount > 0 set $price -= amount * discount / 100 continue
+                    'tax'      return done
+                default allow
+            end
+            """;
+
+        // $price = 200 - (200 * 10 / 100) = 200 - 20 = 180
+        WorkflowResult result = new Workflow(workflow).evaluate(
+            Map.of("amount", 200, "discount", 10), Map.of()
+        );
+
+        assertEquals("done", result.getResult());
+        assertEquals(180.0, ((Number) result.getVariables().get("price")).doubleValue(), 0.001);
+    }
+
+    @Test
     void testDefaultResultHasEmptyVariables() {
         String workflow = String.format(TEMPLATE,
             "'rule1' amount > 1000 set $x = 1 return flagged");

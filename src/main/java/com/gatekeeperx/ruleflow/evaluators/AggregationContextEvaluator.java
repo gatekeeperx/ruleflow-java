@@ -2,6 +2,7 @@ package com.gatekeeperx.ruleflow.evaluators;
 
 import com.gatekeeperx.ruleflow.RuleFlowLanguageLexer;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
+import com.gatekeeperx.ruleflow.errors.TypeComparisonException;
 import com.gatekeeperx.ruleflow.visitors.Visitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,22 +25,28 @@ public class AggregationContextEvaluator implements ContextEvaluator<RuleFlowLan
             boolean res = false;
             switch (ctx.op.getType()) {
                 case RuleFlowLanguageLexer.K_ALL:
-                    res = list.stream().allMatch(
-                        data -> (Boolean) evalPredicate(data, visitor.getRoot(), visitor.getLists(),
-                            ctx.predicate));
+                    res = list.stream().allMatch(data -> {
+                        try {
+                            return (Boolean) evalPredicate(data, visitor.getRoot(), visitor.getLists(), ctx.predicate);
+                        } catch (TypeComparisonException | NullPointerException e) { return false; }
+                    });
                     logger.debug("Aggregation: ALL expr={}, result={}", value, res);
-
                     return res;
+                case RuleFlowLanguageLexer.K_CONTAINS:
                 case RuleFlowLanguageLexer.K_ANY:
-                    res = list.stream().anyMatch(
-                        data -> (Boolean) evalPredicate(data, visitor.getRoot(), visitor.getLists(),
-                            ctx.predicate));
-                    logger.debug("Aggregation: ANY expr={}, result={}", value, res);
+                    res = list.stream().anyMatch(data -> {
+                        try {
+                            return (Boolean) evalPredicate(data, visitor.getRoot(), visitor.getLists(), ctx.predicate);
+                        } catch (TypeComparisonException | NullPointerException e) { return false; }
+                    });
+                    logger.debug("Aggregation: ANY/CONTAINS expr={}, result={}", value, res);
                     return res;
                 case RuleFlowLanguageLexer.K_NONE:
-                    res = list.stream().noneMatch(
-                        data -> (Boolean) evalPredicate(data, visitor.getRoot(), visitor.getLists(),
-                            ctx.predicate));
+                    res = list.stream().noneMatch(data -> {
+                        try {
+                            return (Boolean) evalPredicate(data, visitor.getRoot(), visitor.getLists(), ctx.predicate);
+                        } catch (TypeComparisonException | NullPointerException e) { return false; }
+                    });
                     logger.debug("Aggregation: NONE expr={}, result={}", value, res);
                     return res;
                 case RuleFlowLanguageLexer.K_AVERAGE:
@@ -111,8 +118,10 @@ public class AggregationContextEvaluator implements ContextEvaluator<RuleFlowLan
             Object predicateValue = new Visitor((Map<String, Object>) root, lists, (Map<String, Object>) root).visit(ctx);
             return compareValues(data, predicateValue);
         } else {
-            // For property comparisons like { type = 'a' }, evaluate in the context of the list item
-            return new Visitor((Map<String, Object>) data, lists, (Map<String, Object>) root).visit(ctx);
+            // Inject "it" so `it.field` expressions resolve to the current item
+            java.util.Map<String, Object> predicateData = new java.util.LinkedHashMap<>((Map<String, Object>) data);
+            predicateData.put("it", data);
+            return new Visitor(predicateData, lists, (Map<String, Object>) root).visit(ctx);
         }
     }
 
