@@ -105,8 +105,12 @@ public class AggregationContextEvaluator implements ContextEvaluator<RuleFlowLan
             return BigDecimal.valueOf(list.size());
         } else {
             long count = list.stream()
-                .filter(data -> (Boolean) new Visitor((Map<String, Object>) data, lists, (Map<String, Object>) root).visit(predicate))
-            .count();
+                .filter(data -> {
+                    try {
+                        return (Boolean) evalPredicate(data, root, lists, predicate);
+                    } catch (TypeComparisonException | NullPointerException e) { return false; }
+                })
+                .count();
             return BigDecimal.valueOf(count);
         }
     }

@@ -494,5 +494,51 @@ public class EvalInListTest {
 
         Assertions.assertEquals(expectedResult, result);
     }
+
+    @Test
+    public void testEvalInListWithItAlias() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'blocked' evalInList('blacklist', it.field1 = 'test') return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "blocked", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of(), Map.of(
+            "blacklist", List.of(
+                Map.of("field1", "other"),
+                Map.of("field1", "test"),
+                Map.of("field1", "another")
+            )
+        ));
+
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void testEvalInListWithItAlias2() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'blocked' list('blacklist').any { it.field1 = 'test' } return block
+                default allow
+            end
+        """;
+
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "blocked", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of(), Map.of(
+            "blacklist", List.of(
+                Map.of("field1", "other"),
+                Map.of("field1", "test"),
+                Map.of("field1", "another")
+            )
+        ));
+
+        Assertions.assertEquals(expectedResult, result);
+    }
 }
 

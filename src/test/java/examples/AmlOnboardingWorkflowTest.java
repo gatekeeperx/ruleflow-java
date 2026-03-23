@@ -25,7 +25,7 @@ public class AmlOnboardingWorkflowTest {
                 ruleset 'work_info'
                     'agrario'     customer.workInfo.code = 1010 SET $score = 0.45 * 10 continue
                     'informatico' customer.workInfo.code = 230  SET $score += 0.45 * 5 continue
-                    'desempleado' customer.workInfo.code = 230  SET $score = $score + 0.45 * 5 continue
+                    'desempleado' customer.workInfo.code = 2300  SET $score = $score + 0.45 * 5 continue
                 ruleset 'sanctions'
                     'hit'   screening(documentNumber, customer.firstName + ' ' + customer.lastName).matchCount > 5
                             set $score = 0.55 * 15
