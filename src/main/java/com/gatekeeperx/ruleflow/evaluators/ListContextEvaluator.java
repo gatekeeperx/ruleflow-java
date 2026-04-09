@@ -39,6 +39,9 @@ public class ListContextEvaluator implements ContextEvaluator<RuleFlowLanguagePa
 
     private Object evalIn(RuleFlowLanguageParser.ListContext ctx, Visitor visitor) throws PropertyNotFoundException {
         Object value = visitor.visit(ctx.value);
+        if (value == null) {
+            throw new PropertyNotFoundException(ctx.value.getText() + " field cannot be found");
+        }
 
         if (ctx.values.literalList != null) {
             List<String> literals = ctx.values.string_literal().stream()
@@ -64,8 +67,11 @@ public class ListContextEvaluator implements ContextEvaluator<RuleFlowLanguagePa
         }
     }
 
-    private Object evalContains(RuleFlowLanguageParser.ListContext ctx, Visitor visitor) {
+    private Object evalContains(RuleFlowLanguageParser.ListContext ctx, Visitor visitor) throws PropertyNotFoundException {
         Object value = visitor.visit(ctx.value);
+        if (value == null) {
+            throw new PropertyNotFoundException(ctx.value.getText() + " field cannot be found");
+        }
 
         if (ctx.values.literalList != null) {
             List<String> literals = ctx.values.string_literal().stream()
@@ -91,7 +97,11 @@ public class ListContextEvaluator implements ContextEvaluator<RuleFlowLanguagePa
 
     private Object evalStartsWith(RuleFlowLanguageParser.ListContext ctx, Visitor visitor)
         throws PropertyNotFoundException, UnexpectedSymbolException {
-        String value = visitor.visit(ctx.value).toString();
+        Object rawValue = visitor.visit(ctx.value);
+        if (rawValue == null) {
+            throw new PropertyNotFoundException(ctx.value.getText() + " field cannot be found");
+        }
+        String value = rawValue.toString();
         List<?> list;
 
         if (ctx.values.literalList != null) {
