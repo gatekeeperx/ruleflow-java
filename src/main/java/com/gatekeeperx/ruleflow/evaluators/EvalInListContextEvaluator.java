@@ -66,13 +66,22 @@ public class EvalInListContextEvaluator implements ContextEvaluator<RuleFlowLang
         public ScopedVisitor(Object currentItem, Visitor parentVisitor) {
             // Use the current item as data context, preserve root and lists from parent
             super(
-                currentItem instanceof Map ? (Map<String, ?>) currentItem : Map.of(),
+                buildScopedData(currentItem),
                 parentVisitor.getLists(),
                 parentVisitor.getRoot(),
                 parentVisitor.getFunctions()
             );
             this.currentItem = currentItem;
             this.parentVisitor = parentVisitor;
+        }
+
+        @SuppressWarnings("unchecked")
+        private static Map<String, Object> buildScopedData(Object currentItem) {
+            Map<String, Object> data = new java.util.LinkedHashMap<>(
+                currentItem instanceof Map ? (Map<String, Object>) currentItem : Map.of()
+            );
+            data.put("it", currentItem);  // alias — enables it.field inside evalInList predicates
+            return data;
         }
 
         @Override
@@ -96,8 +105,10 @@ public class EvalInListContextEvaluator implements ContextEvaluator<RuleFlowLang
             logger.debug("ScopedVisitor.visitValidProperty: property={}, K_ELEM.size={}, ID.size={}, nestedProperty={}, property={}, currentItem={}", 
                 ctx.getText(), ctx.K_ELEM().size(), ctx.ID().size(), ctx.nestedProperty != null, ctx.property != null, currentItem);
             
-            // Check if this property starts with 'elem' token
+            // Check if this property starts with 'elem' keyword or 'it' alias
             boolean startsWithElem = ctx.K_ELEM().size() > 0 && "elem".equals(ctx.K_ELEM(0).getText());
+            boolean startsWithIt = ctx.K_ELEM().isEmpty() && !ctx.ID().isEmpty() && "it".equals(ctx.ID(0).getText());
+            if (startsWithIt) startsWithElem = true;  // treat 'it' as alias for 'elem'
             logger.debug("ScopedVisitor.visitValidProperty: startsWithElem={}", startsWithElem);
             
             if (startsWithElem) {

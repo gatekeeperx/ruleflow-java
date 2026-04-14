@@ -13,24 +13,22 @@ RuleFlow is a declarative rule engine DSL for expressing business logic as reada
 5. [Property Access](#5-property-access)
 6. [Literals and Values](#6-literals-and-values)
 7. [Math Operators](#7-math-operators)
-8. [List Operations](#8-list-operations)
-9. [Aggregations](#9-aggregations)
-10. [evalInList](#10-evalinlist)
-11. [set — Variable Assignment](#11-set--variable-assignment)
-12. [continue — Score and Proceed](#12-continue--score-and-proceed)
-13. [Actions](#13-actions)
-14. [Custom Functions](#14-custom-functions)
-15. [Date and Time](#15-date-and-time)
-16. [String Similarity](#16-string-similarity)
-17. [Geo Operations](#17-geo-operations)
-18. [Regex](#18-regex)
-19. [Evaluation Modes](#19-evaluation-modes)
-20. [Error Handling and Warnings](#20-error-handling-and-warnings)
-21. [Case Sensitivity](#21-case-sensitivity)
-22. [Operator Precedence](#22-operator-precedence)
-23. [Full Examples](#23-full-examples)
-24. [Best Practices](#24-best-practices)
-25. [Reserved Keywords](#25-reserved-keywords)
+8. [List & Collection Operations](#8-list--collection-operations)
+9. [set — Variable Assignment](#9-set--variable-assignment)
+10. [continue — Score and Proceed](#10-continue--score-and-proceed)
+11. [Actions](#11-actions)
+12. [Custom Functions](#12-custom-functions)
+13. [Date and Time](#13-date-and-time)
+14. [String Similarity](#14-string-similarity)
+15. [Geo Operations](#15-geo-operations)
+16. [Regex](#16-regex)
+17. [Evaluation Modes](#17-evaluation-modes)
+18. [Error Handling and Warnings](#18-error-handling-and-warnings)
+19. [Case Sensitivity](#19-case-sensitivity)
+20. [Operator Precedence](#20-operator-precedence)
+21. [Full Examples](#21-full-examples)
+22. [Best Practices](#22-best-practices)
+23. [Reserved Keywords](#23-reserved-keywords)
 
 ---
 
@@ -344,75 +342,81 @@ Only `+` has this dual behaviour; `-` is always numeric.
 
 ---
 
-## 8. List Operations
+## 8. List & Collection Operations
 
-### Operators
+This section consolidates all list and collection operations, grouped by intent.
 
-| Operator | Meaning |
+---
+
+### 1. Check if a value is IN a list (membership)
+
+| Syntax | Description |
 |---|---|
-| `IN` | Value matches any element in the list |
-| `CONTAINS` | Any list element is a substring of the value |
-| `STARTS_WITH` | Value starts with any element in the list |
-| `NOT IN` | Value does not match any element |
-| `NOT CONTAINS` | No element is a substring of the value |
-| `NOT STARTS_WITH` | Value starts with none of the elements |
-
-### Inline literal list
+| `expr IN 'a', 'b', 'c'` | Exact match against inline literals |
+| `expr NOT IN 'a', 'b'` | Negated exact match |
+| `expr IN list('name')` | Exact match against named/stored list |
+| `expr NOT IN list('name')` | Negated match against stored list |
+| `(f1, f2) IN list('name')` | Tuple match (multi-field) against stored list |
+| `(f1, f2) NOT IN list('name')` | Negated tuple match |
+| `(f1, f2) IN (('a','b'), ('c','d'))` | Tuple match against inline tuple literal |
 
 ```
 country IN 'US', 'CA', 'GB'
 status NOT IN 'blocked', 'suspended'
-```
-
-### Stored list
-
-Lists are named collections provided at runtime.
-
-```
 country IN list('allowed_countries')
 device.fingerprint NOT IN list('blacklisted_devices')
-```
-
-### Tuple lists (multi-field matching)
-
-```
 (device.fingerprint, user.ip) IN list('blocked_combos')
 (country, currency) IN ('US', 'USD'), ('GB', 'GBP')
 ```
 
-All fields in the tuple must match.
+All fields in a tuple must match. Named lists are provided at runtime via the `lists` parameter of `workflow.evaluate(...)`.
 
 ---
 
-## 9. Aggregations
+### 2. String membership (CONTAINS, STARTS_WITH)
 
-Aggregations operate on list-type fields in the data.
+`CONTAINS` and `STARTS_WITH` check whether a string value contains or starts with any element in the list. These are **not** the same as the `.contains{}` aggregation operator.
 
-### Syntax
+| Syntax | Description |
+|---|---|
+| `expr CONTAINS 'sub1', 'sub2'` | Value contains any of the substrings |
+| `expr NOT CONTAINS 'sub'` | Negated substring check |
+| `expr CONTAINS list('name')` | Value contains any element of stored list |
+| `expr STARTS_WITH 'pfx1', 'pfx2'` | Value starts with any prefix |
+| `expr NOT STARTS_WITH 'pfx'` | Value starts with none of the prefixes |
+| `expr STARTS_WITH list('name')` | Value starts with any element of stored list |
+
+```
+email CONTAINS '@gmail.com', '@yahoo.com'
+description NOT CONTAINS 'spam', 'phishing'
+country_code STARTS_WITH 'US', 'CA'
+```
+
+---
+
+### 3. Aggregations on a field (list nested in request data)
+
+Aggregations operate on list-type fields within the evaluated data payload.
 
 ```
 <field>.<operation> { <predicate> }
 <field>.<operation> ()
 ```
 
-### Operations
-
-| Operation | Description | Return type |
+| Syntax | Description | Return type |
 |---|---|---|
-| `.any { predicate }` | True if at least one item matches | Boolean |
-| `.contains { predicate }` | True if at least one item matches (alias for `.any`) | Boolean |
-| `.all { predicate }` | True if every item matches | Boolean |
-| `.none { predicate }` | True if no item matches | Boolean |
-| `.count { predicate }` | Count of matching items | Number |
-| `.count()` | Total number of items | Number |
-| `.average { predicate }` | Average of items matching predicate | Number |
-| `.average()` | Average of all items | Number |
-| `.distinct { predicate }` | Distinct values from matching items | Collection |
-| `.distinct()` | All distinct values | Collection |
+| `field.any { predicate }` | True if at least one item matches | Boolean |
+| `field.contains { predicate }` | Alias for `.any{}` | Boolean |
+| `field.all { predicate }` | True if every item matches | Boolean |
+| `field.none { predicate }` | True if no item matches | Boolean |
+| `field.count { predicate }` | Count of items matching predicate | Number |
+| `field.count()` | Total item count | Number |
+| `field.average { predicate }` | Average value across matched items | Number |
+| `field.average()` | Average of all items | Number |
+| `field.distinct { predicate }` | Distinct values from matched items | Collection |
+| `field.distinct()` | All distinct values | Collection |
 
-### Predicate forms
-
-Inside `{ }`, the current list item is the data context. Use bare field names or `it.field`:
+Inside `{ }`, `it` refers to the current item. Bare field names also resolve against the current item first, then fall back to parent context.
 
 ```
 -- Does any item equal the string 'fraud'?
@@ -434,28 +438,49 @@ orders.count { status = 'pending' } >= 2
 items.average { category = 'premium' } > 500
 ```
 
-### Null-safe predicate evaluation
-
-If a field referenced in a predicate is `null` and the comparison fails (e.g., `null > 3`), that item is treated as **not matching** and evaluation continues with the next item. No warning is generated for null field comparisons inside aggregation predicates.
+**Null-safe evaluation:** if a predicate field is `null`, that item is treated as not matching and evaluation continues silently.
 
 ```
--- items with null priority are skipped silently; only items where priority > 3 match
+-- items with null priority are skipped; only items where priority > 3 match
 items.contains { it.priority > 3 }
 ```
 
 ---
 
-## 10. evalInList
+### 4. Aggregations on a stored/named list
 
-`evalInList` tests each item in a **named list** (provided at runtime) against a predicate, returning `true` if any item matches.
+The same aggregation operators work on named lists provided at runtime, using `list('name')` as the target.
 
-### Syntax
+| Syntax | Description |
+|---|---|
+| `list('name').any { predicate }` | Any item in named list matches predicate |
+| `list('name').contains { predicate }` | Alias for `.any{}` |
+| `list('name').all { predicate }` | All items match |
+| `list('name').none { predicate }` | No items match |
+| `list('name').count { predicate }` | Count matching items |
+| `list('name').count()` | Total items in list |
+| `list('name').average { predicate }` | Average across matched items |
+| `list('name').distinct { predicate }` | Distinct values from matched items |
+
+Inside predicates, `it` refers to the current list item. Parent-context properties (request-level fields) are accessible directly by name.
 
 ```
-evalInList('<list_name>', <predicate>)
+list('blacklist').any { it.userId = userId }
+list('patterns').any { it.type = transaction.type AND it.region = user.region }
+list('sessions').none { it.deviceId = device.id AND date(it.expiresAt) > date(now()) }
+list('allowed_countries').count() > 0
 ```
 
-Inside the predicate, `elem` refers to the current list item.
+---
+
+### 5. evalInList (legacy / advanced)
+
+`evalInList` is the original form for testing named lists. It is equivalent to `list('name').any { ... }`.
+
+| Syntax | Description |
+|---|---|
+| `evalInList('name', elem.field = value)` | True if any item matches predicate |
+| `evalInList('name', it.field = value)` | Same, using `it` alias for `elem` |
 
 ```
 evalInList('blacklist', elem.userId = userId)
@@ -463,16 +488,11 @@ evalInList('patterns', elem.type = transaction.type AND elem.region = user.regio
 evalInList('sessions', elem.deviceId = device.id AND date(elem.expiresAt) > date(now()))
 ```
 
-You can reference request-level properties freely alongside `elem.*`.
-
-### Difference from aggregations
-
-- Aggregations (`.any`, `.all`, etc.) — work on **fields within the request data**
-- `evalInList` — works on **externally provided named lists**
+You can reference request-level properties alongside `elem.*`. Prefer the `list('name').any { }` form for new rules — `evalInList` is retained for backwards compatibility.
 
 ---
 
-## 11. set — Variable Assignment
+## 9. set — Variable Assignment
 
 `set` clauses compute and store intermediate values when a rule fires. Variables are available to all subsequent rules and rulesets within the same evaluation.
 
@@ -560,7 +580,7 @@ Object score = vars.get("base_score");   // key is bare name, no $
 
 ---
 
-## 12. continue — Score and Proceed
+## 10. continue — Score and Proceed
 
 `continue` lets a rule execute its `set` clauses (and optionally accumulate actions) without returning a final result. Evaluation proceeds to the next rule and subsequent rulesets.
 
@@ -626,7 +646,7 @@ If no subsequent rule matches, the `default` clause fires. Variables set by `con
 
 ---
 
-## 13. Actions
+## 11. Actions
 
 Actions describe side effects to execute when a rule fires. They are returned in the workflow result for the caller to process.
 
@@ -679,7 +699,7 @@ Set<String> actionNames = result.getActions();
 
 ---
 
-## 14. Custom Functions
+## 12. Custom Functions
 
 Custom functions inject external logic — API calls, ML scores, database lookups — into rule conditions.
 
@@ -738,7 +758,7 @@ workflow.evaluate(data, lists, Map.of("screening", screeningFn, "kyc", kycFn));
 
 ---
 
-## 15. Date and Time
+## 13. Date and Time
 
 ### Getting the current date/time
 
@@ -801,7 +821,7 @@ Returns a number: `0` = Sunday, `1` = Monday, …, `6` = Saturday.
 
 ---
 
-## 16. String Similarity
+## 14. String Similarity
 
 Five functions for fuzzy string matching. All return a numeric score.
 
@@ -823,7 +843,7 @@ Each function accepts snake_case and camelCase names.
 
 ---
 
-## 17. Geo Operations
+## 15. Geo Operations
 
 ### Geohash encoding / decoding
 
@@ -854,7 +874,7 @@ within_radius(lat1, lon1, lat2, lon2, radius_km)   -- true if within radius_km
 
 ---
 
-## 18. Regex
+## 16. Regex
 
 ### regex_strip
 
@@ -873,7 +893,7 @@ Aliases: `regex_strip`, `regexStrip`, `regexstrip`.
 
 ---
 
-## 19. Evaluation Modes
+## 17. Evaluation Modes
 
 ### single_match (default)
 
@@ -907,7 +927,7 @@ In `multi_match`, `set` variables accumulate across all matched rules, and each 
 
 ---
 
-## 20. Error Handling and Warnings
+## 18. Error Handling and Warnings
 
 RuleFlow is designed for resilience: individual rule failures do not abort the workflow. The failed rule is skipped with a warning and evaluation continues.
 
@@ -937,7 +957,7 @@ boolean hadError     = result.isError();   // true only for unexpected engine-le
 
 ---
 
-## 21. Case Sensitivity
+## 19. Case Sensitivity
 
 | Element | Case sensitivity |
 |---|---|
@@ -951,7 +971,7 @@ boolean hadError     = result.isError();   // true only for unexpected engine-le
 
 ---
 
-## 22. Operator Precedence
+## 20. Operator Precedence
 
 From highest to lowest:
 
@@ -976,7 +996,7 @@ a + b * c = 15 AND (d < 10 OR e = 5)
 
 ---
 
-## 23. Full Examples
+## 21. Full Examples
 
 ### AML onboarding risk scoring
 
@@ -1103,7 +1123,7 @@ List<String> tags = result.getMatchedRules()
 
 ---
 
-## 24. Best Practices
+## 22. Best Practices
 
 - **Provide a default clause** — always. It is the safety net when no rule matches.
 - **Use `continue` for scoring rulesets** — rulesets that only accumulate scores or flags should use `continue`; reserve `return` for the final decision ruleset.
@@ -1117,6 +1137,6 @@ List<String> tags = result.getMatchedRules()
 
 ---
 
-## 25. Reserved Keywords
+## 23. Reserved Keywords
 
 `workflow`, `ruleset`, `default`, `end`, `return`, `with`, `and`, `or`, `not`, `then`, `continue`, `in`, `contains`, `starts_with`, `any`, `all`, `none`, `count`, `average`, `distinct`, `list`, `elem`, `it`, `action`, `set`, `true`, `false`, `null`, `evaluation_mode`, `single_match`, `multi_match`, `now`, `date`, `datetime`, `date_add`, `date_subtract`, `date_diff`, `day_of_week`, `abs`, `expr`

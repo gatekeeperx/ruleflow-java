@@ -16,6 +16,7 @@ import com.gatekeeperx.ruleflow.evaluators.DateValueContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.DayOfWeekContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.CustomFunctionCallContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.EvalInListContextEvaluator;
+import com.gatekeeperx.ruleflow.evaluators.StoredListExprContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.GeoOperationContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.MemberAccessContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.VariableRefContextEvaluator;
@@ -122,6 +123,9 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
                 return new StringDistanceContextEvaluator().evaluateStringSimilarityScore((RuleFlowLanguageParser.StringSimilarityScoreContext) ctx, this);
             } else if (ctx instanceof RuleFlowLanguageParser.GeoOperationContext) {
                 return new GeoOperationContextEvaluator().evaluate((RuleFlowLanguageParser.GeoOperationContext) ctx, this);
+            } else if (ctx instanceof RuleFlowLanguageParser.StoredListExprContext) {
+                return new StoredListExprContextEvaluator().evaluate(
+                    (RuleFlowLanguageParser.StoredListExprContext) ctx, this);
             } else if (ctx instanceof RuleFlowLanguageParser.EvalInListContext) {
                 return new EvalInListContextEvaluator().evaluate((RuleFlowLanguageParser.EvalInListContext) ctx, this);
             } else if (ctx instanceof RuleFlowLanguageParser.CustomFunctionCallContext) {
