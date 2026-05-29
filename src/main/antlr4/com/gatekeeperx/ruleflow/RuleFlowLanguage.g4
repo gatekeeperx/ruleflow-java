@@ -93,6 +93,7 @@ dateExpr: DATE_DIFF L_PAREN left=dateValue COMMA right=dateValue COMMA (HOUR | D
     | op=K_NOW L_PAREN R_PAREN #now
     | op=K_DATE_ADD L_PAREN date=dateValue COMMA amount=expr COMMA unit=timeUnit R_PAREN #dateAdd
     | op=K_DATE_SUBTRACT L_PAREN date=dateValue COMMA amount=expr COMMA unit=timeUnit R_PAREN #dateSubtract
+    | op=(K_YEAR | K_MONTH | DAY | HOUR | MINUTE) L_PAREN left=dateValue R_PAREN #dateComponent
     ;
 
 propertyTuple: L_PAREN validProperty (COMMA validProperty)* R_PAREN;
@@ -189,6 +190,8 @@ K_DATE: D A T E;
 K_DATETIME: D A T E T I M E;
 K_DATE_ADD: D A T E '_' A D D;
 K_DATE_SUBTRACT: D A T E '_' S U B T R A C T;
+K_YEAR: Y E A R;
+K_MONTH: M O N T H;
 K_SET: S E T;
 K_CONTINUE: C O N T I N U E;
 

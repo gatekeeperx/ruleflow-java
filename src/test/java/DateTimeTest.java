@@ -367,6 +367,125 @@ class DateTimeTest {
     }
 
     @Test
+    public void givenYearExtractionWithDateTimeMustMatch() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'year_extract' year('2024-06-01T12:30Z') = 2024 return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "year_extract", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of());
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenMonthExtractionWithDateTimeMustMatch() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'month_extract' month('2024-06-01T12:30Z') = 6 return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "month_extract", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of());
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenDayExtractionWithDateTimeMustMatch() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'day_extract' day('2024-06-01T12:30Z') = 1 return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "day_extract", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of());
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenHourExtractionWithDateTimeMustMatch() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'hour_extract' hour('2024-06-01T12:30Z') = 12 return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "hour_extract", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of());
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenMinuteExtractionWithDateTimeMustMatch() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'minute_extract' minute('2024-06-01T12:30Z') = 30 return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "minute_extract", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of());
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenComponentExtractionWithPropertyMustMatch() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'year_prop' year(order_date) = 2024 return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "year_prop", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("order_date", "2024-06-01T12:30Z"));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenHourExtractionWithDateOnlyStringMustReturnZero() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'hour_date_only' hour('2020-03-01') = 0 return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "hour_date_only", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of());
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenComponentExtractionWithInvalidStringMustNotMatch() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'hour_invalid' hour('not-a-date') = 0 return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult result = ruleEngine.evaluate(Map.of());
+        Assertions.assertNotEquals("block", result.getResult());
+    }
+
+    @Test
     public void givenDateAndDateTimeWhenComparingMustMatch() {
         String workflow = """
             workflow 'test'

@@ -101,6 +101,8 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
                 return new BinaryOrContextEvaluator().evaluate((RuleFlowLanguageParser.BinaryOrContext) ctx, this);
             } else if (ctx instanceof RuleFlowLanguageParser.DayOfWeekContext) {
                 return new DayOfWeekContextEvaluator().evaluate((RuleFlowLanguageParser.DayOfWeekContext) ctx, this);
+            } else if (ctx instanceof RuleFlowLanguageParser.DateComponentContext) {
+                return new com.gatekeeperx.ruleflow.evaluators.DateComponentContextEvaluator().evaluate((RuleFlowLanguageParser.DateComponentContext) ctx, this);
             } else if (ctx instanceof RuleFlowLanguageParser.RegexlikeContext) {
                 return new RegexContextEvaluator().evaluate((RuleFlowLanguageParser.RegexlikeContext) ctx, this);
             } else if (ctx instanceof RuleFlowLanguageParser.DateValueContext) {
