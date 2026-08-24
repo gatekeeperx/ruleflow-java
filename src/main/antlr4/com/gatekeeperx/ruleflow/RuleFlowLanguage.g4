@@ -58,6 +58,7 @@ expr: L_PAREN expr R_PAREN                                                      
     | left=expr op=(MULTIPLY | DIVIDE | MODULO) right=expr                      #mathMul
     | left=expr op=(ADD | MINUS) right=expr                                     #mathAdd
     | left=expr op=(LT | LT_EQ | GT | GT_EQ | EQ | EQ_IC | NOT_EQ) right=expr   #comparator
+    | value=expr K_IS not=K_NOT? check=(K_NULL | K_EMPTY | K_BLANK)             #nullCheck
     | K_LIST L_PAREN listName=string_literal R_PAREN                                  #storedListExpr
     | value=expr not=K_NOT? op=(K_CONTAINS | K_IN | K_STARTS_WITH) values=listElems #list
     | value=propertyTuple not=K_NOT? op=(K_CONTAINS | K_IN | K_STARTS_WITH) values=listElems #tupleList
@@ -180,6 +181,8 @@ K_COUNT: C O U N T;
 K_AVERAGE: A V E R A G E;
 K_DISTINCT: D I S T I N C T;
 K_NULL: N U L L;
+K_EMPTY: E M P T Y;
+K_BLANK: B L A N K;
 DAY_OF_WEEK: D A Y '_' O F '_' W E E K;
 K_EXPR : E X P R;
 K_EVALUATION_MODE: E V A L U A T I O N '_' M O D E;
