@@ -139,25 +139,24 @@ MULTIPLY_EQ: '*=';
 DIVIDE_EQ: '/=';
 MODULO_EQ: '%=';
 NOT_EQ: '<>';
-MINUTE: 'minute';
-HOUR: 'hour';
-DAY: 'day';
-CURRENT_DATE: 'currentDate' L_PAREN R_PAREN
-             | 'currentdate' L_PAREN R_PAREN;
-DATE_DIFF: 'dateDiff' | 'datediff' | D A T E '_' D I F F;
-ABS: 'abs';
-REGEX_STRIP: 'regex_strip' | 'regexStrip' | 'regexstrip';
-MODULO: '%' | 'mod';
-K_STARTS_WITH: 'starts_with' | 'startswith' | 'startsWith';
-K_LIST: 'list';
-K_ELEM: 'elem';
-K_EVAL_IN_LIST: 'evalInList' | 'evalinlist' | 'eval_in_list';
+MINUTE: M I N U T E;
+HOUR: H O U R;
+DAY: D A Y;
+CURRENT_DATE: C U R R E N T D A T E L_PAREN R_PAREN;
+DATE_DIFF: D A T E D I F F | D A T E '_' D I F F;
+ABS: A B S;
+REGEX_STRIP: R E G E X S T R I P | R E G E X '_' S T R I P;
+MODULO: '%' | M O D;
+K_STARTS_WITH: S T A R T S W I T H | S T A R T S '_' W I T H;
+K_LIST: L I S T;
+K_ELEM: E L E M;
+K_EVAL_IN_LIST: E V A L I N L I S T | E V A L '_' I N '_' L I S T;
 L_BRACE: '{';
 R_BRACE: '}';
 L_PAREN: '(';
 R_PAREN: ')';
 K_COLON: ':';
-K_ACTION: 'action';
+K_ACTION: A C T I O N;
 K_WORKFLOW: W O R K F L O W;
 K_RULESET: R U L E S E T;
 K_RETURN: R E T U R N;
@@ -195,16 +194,16 @@ K_MONTH: M O N T H;
 K_SET: S E T;
 K_CONTINUE: C O N T I N U E;
 
-STRING_DISTANCE: 'string_distance' | 'stringDistance';
-PARTIAL_RATIO: 'partial_ratio' | 'partialRatio';
-TOKEN_SORT_RATIO: 'token_sort_ratio' | 'tokenSortRatio';
-TOKEN_SET_RATIO: 'token_set_ratio' | 'tokenSetRatio';
-STRING_SIMILARITY_SCORE: 'string_similarity_score' | 'stringSimilarityScore';
+STRING_DISTANCE: S T R I N G '_' D I S T A N C E | S T R I N G D I S T A N C E;
+PARTIAL_RATIO: P A R T I A L '_' R A T I O | P A R T I A L R A T I O;
+TOKEN_SORT_RATIO: T O K E N '_' S O R T '_' R A T I O | T O K E N S O R T R A T I O;
+TOKEN_SET_RATIO: T O K E N '_' S E T '_' R A T I O | T O K E N S E T R A T I O;
+STRING_SIMILARITY_SCORE: S T R I N G '_' S I M I L A R I T Y '_' S C O R E | S T R I N G S I M I L A R I T Y S C O R E;
 
-GEOHASH_ENCODE: 'geohash_encode' | 'geohashEncode';
-GEOHASH_DECODE: 'geohash_decode' | 'geohashDecode';
-DISTANCE: 'distance';
-WITHIN_RADIUS: 'within_radius' | 'withinRadius';
+GEOHASH_ENCODE: G E O H A S H '_' E N C O D E | G E O H A S H E N C O D E;
+GEOHASH_DECODE: G E O H A S H '_' D E C O D E | G E O H A S H D E C O D E;
+DISTANCE: D I S T A N C E;
+WITHIN_RADIUS: W I T H I N '_' R A D I U S | W I T H I N R A D I U S;
 
 NUMERIC_LITERAL
   : MINUS? DIGIT+ ( '.' DIGIT* )? ( E [-+]? DIGIT+ )?
