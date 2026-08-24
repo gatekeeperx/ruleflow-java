@@ -16,6 +16,7 @@ import com.gatekeeperx.ruleflow.evaluators.DateValueContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.DayOfWeekContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.CustomFunctionCallContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.EvalInListContextEvaluator;
+import com.gatekeeperx.ruleflow.evaluators.NullCheckContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.StoredListExprContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.GeoOperationContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.MemberAccessContextEvaluator;
@@ -67,6 +68,8 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
         try {
             if (ctx instanceof RuleFlowLanguageParser.ComparatorContext) {
                 return new ComparatorContextEvaluator().evaluate((RuleFlowLanguageParser.ComparatorContext) ctx, this);
+            } else if (ctx instanceof RuleFlowLanguageParser.NullCheckContext) {
+                return new NullCheckContextEvaluator().evaluate((RuleFlowLanguageParser.NullCheckContext) ctx, this);
             } else if (ctx instanceof RuleFlowLanguageParser.AggregationContext) {
                 return new AggregationContextEvaluator().evaluate((RuleFlowLanguageParser.AggregationContext) ctx, this);
             } else if (ctx instanceof RuleFlowLanguageParser.MathMulContext) {
