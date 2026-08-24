@@ -6,6 +6,8 @@ import com.gatekeeperx.ruleflow.visitors.Visitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.gatekeeperx.ruleflow.utils.MapUtils;
+
 import java.util.Map;
 
 public class ValidPropertyContextEvaluator implements ContextEvaluator<ValidPropertyContext> {
@@ -19,7 +21,7 @@ public class ValidPropertyContextEvaluator implements ContextEvaluator<ValidProp
         if (ctx.property != null) {
             String fieldName = getFirstTokenText(ctx);
             Map<String, ?> propData = (ctx.root != null) ? visitor.getRoot() : visitor.getData();
-            Object fieldResult = propData.get(fieldName);
+            Object fieldResult = MapUtils.getIgnoreCase(propData, fieldName);
             logger.debug("ValidProperty simple: fieldName={}, root={}, result={}", fieldName, ctx.root != null, fieldResult);
             if (fieldResult == null) {
                 throw new PropertyNotFoundException(fieldName + " field cannot be found");
@@ -48,7 +50,7 @@ public class ValidPropertyContextEvaluator implements ContextEvaluator<ValidProp
         // Process all tokens (both K_ELEM and ID) in order
         for (int i = 0; i < ctx.K_ELEM().size(); i++) {
             String tokenText = ctx.K_ELEM(i).getText();
-            Object value = currentData.get(tokenText);
+            Object value = MapUtils.getIgnoreCase(currentData, tokenText);
             if (value instanceof Map<?, ?>) {
                 currentData = (Map<String, ?>) value;
             } else {
@@ -59,7 +61,7 @@ public class ValidPropertyContextEvaluator implements ContextEvaluator<ValidProp
             }
         }
         for (var id : ctx.ID()) {
-            Object value = currentData.get(id.getText());
+            Object value = MapUtils.getIgnoreCase(currentData, id.getText());
             if (value instanceof Map<?, ?>) {
                 currentData = (Map<String, ?>) value;
             } else {

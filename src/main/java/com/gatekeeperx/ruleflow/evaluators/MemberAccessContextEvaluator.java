@@ -5,6 +5,8 @@ import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
 import com.gatekeeperx.ruleflow.errors.UnexpectedSymbolException;
 import com.gatekeeperx.ruleflow.visitors.Visitor;
 
+import com.gatekeeperx.ruleflow.utils.MapUtils;
+
 import java.util.Map;
 
 public class MemberAccessContextEvaluator
@@ -18,11 +20,12 @@ public class MemberAccessContextEvaluator
         String field = ctx.field.getText();
 
         if (base instanceof Map) {
-            Map<?, ?> map = (Map<?, ?>) base;
-            if (!map.containsKey(field)) {
+            @SuppressWarnings("unchecked")
+            Map<String, ?> map = (Map<String, ?>) base;
+            if (!MapUtils.containsKeyIgnoreCase(map, field)) {
                 throw new PropertyNotFoundException(field + " field cannot be found");
             }
-            return map.get(field);
+            return MapUtils.getIgnoreCase(map, field);
         }
         throw new PropertyNotFoundException("Cannot access field '" + field + "' on " + base);
     }
