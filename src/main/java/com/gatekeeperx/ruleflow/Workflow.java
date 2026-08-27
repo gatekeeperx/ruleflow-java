@@ -39,6 +39,13 @@ public class Workflow {
         return new RulesetVisitor(request, lists, functions).visit(tree);
     }
 
+    public WorkflowResult evaluate(Map<String, Object> request,
+                                   Map<String, List<?>> lists,
+                                   Map<String, RuleflowFunction> functions,
+                                   Map<String, Object> resolvedFunctions) {
+        return new RulesetVisitor(request, lists, functions, resolvedFunctions).visit(tree);
+    }
+
     public String validateAndGetWorkflowName() {
         return new GrammarVisitor().visit(tree);
     }

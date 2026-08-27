@@ -20,11 +20,20 @@ public class CustomFunctionCallContextEvaluator
 
         String functionName = ctx.ID().getText();
         RuleflowFunction function = visitor.getFunctions().get(functionName);
+
+        Map<String, Object> args = buildArgs(ctx, visitor);
+
+        // Pre-resolution: if this call was resolved asynchronously ahead of time,
+        // return the injected result and never invoke the function.
+        String resolvedKey = com.gatekeeperx.ruleflow.functions.RuleflowFunctionKey.of(functionName, args);
+        Map<String, Object> resolvedFunctions = visitor.getResolvedFunctions();
+        if (resolvedFunctions.containsKey(resolvedKey)) {
+            return resolvedFunctions.get(resolvedKey);
+        }
+
         if (function == null) {
             throw new UnexpectedSymbolException("Custom function '" + functionName + "' is not defined");
         }
-
-        Map<String, Object> args = buildArgs(ctx, visitor);
 
         List<Object> cacheKey = new ArrayList<>();
         cacheKey.add(functionName);

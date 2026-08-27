@@ -46,19 +46,26 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
     private final Map<String, List<?>> lists;
     private final Map<String, ?> root;
     private final Map<String, RuleflowFunction> functions;
+    private final Map<String, Object> resolvedFunctions;
     private final Map<List<Object>, Object> functionCallCache = new HashMap<>();
     private final Map<String, Object> variables = new HashMap<>();
 
     public Visitor(Map<String, ?> data, Map<String, List<?>> lists, Map<String, ?> root) {
-        this(data, lists, root, Map.of());
+        this(data, lists, root, Map.of(), Map.of());
     }
 
     public Visitor(Map<String, ?> data, Map<String, List<?>> lists, Map<String, ?> root,
                    Map<String, RuleflowFunction> functions) {
+        this(data, lists, root, functions, Map.of());
+    }
+
+    public Visitor(Map<String, ?> data, Map<String, List<?>> lists, Map<String, ?> root,
+                   Map<String, RuleflowFunction> functions, Map<String, Object> resolvedFunctions) {
         this.data = data;
         this.lists = lists != null ? lists : Map.of();
         this.root = root;
         this.functions = functions != null ? functions : Map.of();
+        this.resolvedFunctions = resolvedFunctions != null ? resolvedFunctions : Map.of();
     }
 
     @Override
@@ -164,6 +171,10 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
 
     public Map<String, RuleflowFunction> getFunctions() {
         return functions;
+    }
+
+    public Map<String, Object> getResolvedFunctions() {
+        return resolvedFunctions;
     }
 
     public Map<List<Object>, Object> getFunctionCallCache() {
