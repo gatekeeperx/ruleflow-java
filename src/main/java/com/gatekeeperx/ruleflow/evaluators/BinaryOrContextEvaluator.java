@@ -10,8 +10,13 @@ public class BinaryOrContextEvaluator implements ContextEvaluator<RuleFlowLangua
 
     @Override
     public Boolean evaluate(RuleFlowLanguageParser.BinaryOrContext ctx, Visitor visitor) {
-        boolean res = (Boolean) visitor.visit(ctx.left) || (Boolean) visitor.visit(ctx.right);
-        logger.debug("BinaryOr: left={}, right={} result={}", visitor.visit(ctx.left), visitor.visit(ctx.right), res);
-        return res;
+        boolean left = (Boolean) visitor.visit(ctx.left);
+        if (left) {
+            logger.debug("BinaryOr: left={}, right=<short-circuited>, result=true", left);
+            return true;
+        }
+        boolean right = (Boolean) visitor.visit(ctx.right);
+        logger.debug("BinaryOr: left={}, right={}, result={}", left, right, right);
+        return right;
     }
 }
