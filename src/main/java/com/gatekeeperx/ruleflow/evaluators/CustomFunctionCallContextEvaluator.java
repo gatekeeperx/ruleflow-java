@@ -24,15 +24,7 @@ public class CustomFunctionCallContextEvaluator
             throw new UnexpectedSymbolException("Custom function '" + functionName + "' is not defined");
         }
 
-        Map<String, Object> args = new LinkedHashMap<>();
-        int positionalIndex = 0;
-        for (RuleFlowLanguageParser.FuncCallArgContext argCtx : ctx.funcCallArg()) {
-            if (argCtx.argName != null) {
-                args.put(argCtx.argName.getText(), visitor.visit(argCtx.argValue));
-            } else {
-                args.put(String.valueOf(positionalIndex++), visitor.visit(argCtx.argValue));
-            }
-        }
+        Map<String, Object> args = buildArgs(ctx, visitor);
 
         List<Object> cacheKey = new ArrayList<>();
         cacheKey.add(functionName);
@@ -50,5 +42,27 @@ public class CustomFunctionCallContextEvaluator
         } catch (Exception e) {
             throw new UnexpectedSymbolException("Custom function '" + functionName + "' failed: " + e.getMessage());
         }
+    }
+
+    /**
+     * Evaluates a custom-function call's arguments against the current visitor's
+     * data, producing the resolved argument map. Named arguments keep their name;
+     * positional arguments are keyed by their zero-based index as a string.
+     * Shared with the pre-resolution extractor so extract-time and evaluate-time
+     * argument resolution are identical.
+     */
+    public static Map<String, Object> buildArgs(
+            RuleFlowLanguageParser.CustomFunctionCallContext ctx, Visitor visitor)
+            throws PropertyNotFoundException, UnexpectedSymbolException {
+        Map<String, Object> args = new LinkedHashMap<>();
+        int positionalIndex = 0;
+        for (RuleFlowLanguageParser.FuncCallArgContext argCtx : ctx.funcCallArg()) {
+            if (argCtx.argName != null) {
+                args.put(argCtx.argName.getText(), visitor.visit(argCtx.argValue));
+            } else {
+                args.put(String.valueOf(positionalIndex++), visitor.visit(argCtx.argValue));
+            }
+        }
+        return args;
     }
 }

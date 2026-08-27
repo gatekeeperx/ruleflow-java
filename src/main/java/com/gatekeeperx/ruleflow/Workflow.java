@@ -42,4 +42,19 @@ public class Workflow {
     public String validateAndGetWorkflowName() {
         return new GrammarVisitor().visit(tree);
     }
+
+    /**
+     * Extracts every custom-function call site in the workflow with its arguments
+     * already resolved against {@code payload}, each carrying a canonical key.
+     * No function is invoked. Intended for asynchronous pre-resolution: the
+     * caller resolves each pending call ahead of time and passes the results back
+     * to {@link #evaluate(Map, Map, Map, Map)}.
+     */
+    public java.util.List<com.gatekeeperx.ruleflow.vo.PendingFunctionCall> extractFunctionCalls(
+            Map<String, Object> payload, Map<String, List<?>> lists) {
+        com.gatekeeperx.ruleflow.visitors.FunctionCallExtractorVisitor extractor =
+            new com.gatekeeperx.ruleflow.visitors.FunctionCallExtractorVisitor(payload, lists);
+        extractor.visit(tree);
+        return extractor.getPendingCalls();
+    }
 }
