@@ -19,7 +19,7 @@ public class ValueContextEvaluator implements ContextEvaluator<ValueContext> {
         } else if (ctx.validValue().number != null) {
             result = Double.valueOf(ctx.validValue().number.getText());
         } else if (ctx.validValue().nullValue != null) {
-            result = ctx.validValue().nullValue;
+            result = null;
         } else if (ctx.validValue().currentDate != null) {
             result = LocalDateTime.now();
         } else if (ctx.validValue().booleanLiteral != null) {

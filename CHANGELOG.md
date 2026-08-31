@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.1]
+
+### Fixed
+- **`= null` / `<> null` comparisons always failed with a type-mismatch error**: `ValueContextEvaluator` returned the parser's `null` token instead of a real Java `null` for the `null` literal, so `ComparatorContextEvaluator`'s existing null-handling branch was never reached. Any comparator against the `null` literal (e.g. `field <> null`, `field = null`) threw `TypeComparisonException` ("different dataTypes") whenever the left side had a real value, regardless of the actual value or operator, always resulting in a warning and the rule not matching.
+  - Note this is unrelated to the `IS NULL` / `IS NOT NULL` construct (`NullCheckContextEvaluator`), which already handled missing properties gracefully and is unaffected by this fix.
+
 ## [0.19.0]
 
 ### Added
