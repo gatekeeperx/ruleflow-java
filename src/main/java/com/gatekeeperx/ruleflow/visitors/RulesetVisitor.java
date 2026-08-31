@@ -27,16 +27,24 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
     private final Map<String, ?> data;
     private final Map<String, List<?>> lists;
     private final Map<String, RuleflowFunction> functions;
+    private final Map<String, Object> resolvedFunctions;
 
     public RulesetVisitor(Map<String, ?> data, Map<String, List<?>> lists) {
-        this(data, lists, Map.of());
+        this(data, lists, Map.of(), Map.of());
     }
 
     public RulesetVisitor(Map<String, ?> data, Map<String, List<?>> lists,
                           Map<String, RuleflowFunction> functions) {
+        this(data, lists, functions, Map.of());
+    }
+
+    public RulesetVisitor(Map<String, ?> data, Map<String, List<?>> lists,
+                          Map<String, RuleflowFunction> functions,
+                          Map<String, Object> resolvedFunctions) {
         this.data = data;
         this.lists = lists;
         this.functions = functions != null ? functions : Map.of();
+        this.resolvedFunctions = resolvedFunctions != null ? resolvedFunctions : Map.of();
     }
 
     @Override
@@ -46,7 +54,7 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
 
     @Override
     public WorkflowResult visitWorkflow(RuleFlowLanguageParser.WorkflowContext ctx) {
-        Visitor visitor = new Visitor(data, lists, data, functions);
+        Visitor visitor = new Visitor(data, lists, data, functions, resolvedFunctions);
         Set<String> warnings = new HashSet<>();
         List<WorkflowResult> matchedRules = new ArrayList<>();
         List<Action> accumulatedActions = new ArrayList<>();
