@@ -352,6 +352,21 @@ class DateTimeTest {
     }
 
     @Test
+    public void givenDateDiffWithNowShouldMatch() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'date_diff_now' dateDiff(now(), now(), minute) = 0 return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "date_diff_now", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of());
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
     public void givenDateAddMinuteRolloverShouldMatch() {
         String workflow = """
             workflow 'test'
@@ -499,4 +514,5 @@ class DateTimeTest {
         WorkflowResult result = ruleEngine.evaluate(Map.of());
         Assertions.assertEquals(expectedResult, result);
     }
+
 } 
