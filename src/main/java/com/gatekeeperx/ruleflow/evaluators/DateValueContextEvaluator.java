@@ -21,6 +21,10 @@ public class DateValueContextEvaluator implements ContextEvaluator<DateValueCont
             ZonedDateTime zonedDateTime = DateTimeUtils.toZonedDateTime(value);
             logger.debug("DateValue: {}", zonedDateTime);
             return zonedDateTime;
+        } else if(ctx.K_NOW() != null) {
+            ZonedDateTime zonedDateTime = ZonedDateTime.now();
+            logger.debug("DateValue: now()={}", zonedDateTime);
+            return zonedDateTime;
         } else {
             throw new IllegalArgumentException("Date not supported: " + ctx.getText());
         }

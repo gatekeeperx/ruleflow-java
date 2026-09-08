@@ -3,6 +3,7 @@ package com.gatekeeperx.ruleflow.evaluators;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
 import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
 import com.gatekeeperx.ruleflow.errors.TypeComparisonException;
+import com.gatekeeperx.ruleflow.utils.DateTimeUtils;
 import com.gatekeeperx.ruleflow.visitors.Visitor;
 import org.antlr.v4.runtime.Token;
 import org.slf4j.Logger;
@@ -34,6 +35,9 @@ public class ComparatorContextEvaluator implements ContextEvaluator<RuleFlowLang
             result = compareBooleans(ctx.op, (Boolean) left, (Boolean) right);
         } else if (left instanceof java.time.ZonedDateTime && right instanceof java.time.ZonedDateTime) {
             result = compareZonedDateTimes(ctx.op, (java.time.ZonedDateTime) left, (java.time.ZonedDateTime) right);
+        } else if (isDateStringComparison(left, right)) {
+            // One side is a date; coerce the String side to a date and compare as dates.
+            result = compareDateAndString(ctx.op, left, right);
         } else if (isStringNumberComparison(left, right)) {
             // Handle mixed String-Number comparisons by converting String to Number
             result = compareMixedStringNumber(ctx.op, left, right);
@@ -50,6 +54,27 @@ public class ComparatorContextEvaluator implements ContextEvaluator<RuleFlowLang
     private boolean isStringNumberComparison(Object left, Object right) {
         return (left instanceof String && right instanceof Number) ||
                (left instanceof Number && right instanceof String);
+    }
+
+    private boolean isDateStringComparison(Object left, Object right) {
+        return (left instanceof java.time.ZonedDateTime && right instanceof String) ||
+               (left instanceof String && right instanceof java.time.ZonedDateTime);
+    }
+
+    private Boolean compareDateAndString(Token operator, Object left, Object right) {
+        java.time.ZonedDateTime leftDate = (left instanceof java.time.ZonedDateTime)
+            ? (java.time.ZonedDateTime) left : parseDateOrThrow(left);
+        java.time.ZonedDateTime rightDate = (right instanceof java.time.ZonedDateTime)
+            ? (java.time.ZonedDateTime) right : parseDateOrThrow(right);
+        return compareZonedDateTimes(operator, leftDate, rightDate);
+    }
+
+    private java.time.ZonedDateTime parseDateOrThrow(Object value) {
+        try {
+            return DateTimeUtils.toZonedDateTime(value.toString());
+        } catch (RuntimeException e) {
+            throw new TypeComparisonException("Cannot compare date/time with non-date value: " + value);
+        }
     }
     
     private Boolean compareMixedStringNumber(Token operator, Object left, Object right) {

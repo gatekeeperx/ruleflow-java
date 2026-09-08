@@ -352,6 +352,21 @@ class DateTimeTest {
     }
 
     @Test
+    public void givenDateDiffWithNowShouldMatch() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'date_diff_now' dateDiff(now(), now(), minute) = 0 return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "date_diff_now", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of());
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
     public void givenDateAddMinuteRolloverShouldMatch() {
         String workflow = """
             workflow 'test'
@@ -499,4 +514,248 @@ class DateTimeTest {
         WorkflowResult result = ruleEngine.evaluate(Map.of());
         Assertions.assertEquals(expectedResult, result);
     }
+
+    @Test
+    public void givenMerchant45DaysOldShouldBlockOnTest1() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'TEST1' dateDiff(now(), merchant.createdAt, day) >= 30 AND dateDiff(now(), merchant.createdAt, day) < 90 RETURN block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "TEST1", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(45).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenMerchant120DaysOldShouldNotBlockOnTest1() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'TEST1' dateDiff(now(), merchant.createdAt, day) >= 30 AND dateDiff(now(), merchant.createdAt, day) < 90 RETURN block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "default", "default", "allow");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(120).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenMerchant10DaysOldShouldBlockOnTest2() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'TEST2'  dateDiff(now(), merchant.createdAt, day) < 30 RETURN block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "TEST2", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(10).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenMerchant45DaysOldShouldNotBlockOnTest2() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'TEST2'  dateDiff(now(), merchant.createdAt, day) < 30 RETURN block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "default", "default", "allow");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(45).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenDayOfWeekOfNowShouldResolve() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'dow_now' day_of_week(now()) = 'MONDAY' OR day_of_week(now()) = 'TUESDAY' OR day_of_week(now()) = 'WEDNESDAY' OR day_of_week(now()) = 'THURSDAY' OR day_of_week(now()) = 'FRIDAY' OR day_of_week(now()) = 'SATURDAY' OR day_of_week(now()) = 'SUNDAY' return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "dow_now", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of());
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenDateComponentsOfNowShouldResolve() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'components_now' year(now()) >= 2026 AND month(now()) >= 1 AND month(now()) <= 12 AND day(now()) >= 1 AND day(now()) <= 31 AND hour(now()) >= 0 AND minute(now()) >= 0 return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "components_now", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of());
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenDateAddExpiringSoonShouldBlock() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'expiring' date_add(merchant.expiresAt, 0, day) < date_add(now(), 30, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "expiring", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("expiresAt", java.time.LocalDate.now().plusDays(10).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenDateAddExpiringLaterShouldAllow() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'expiring' date_add(merchant.expiresAt, 0, day) < date_add(now(), 30, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "default", "default", "allow");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("expiresAt", java.time.LocalDate.now().plusDays(60).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenDateSubtractCutoffOldAccountShouldBlock() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' date_add(merchant.createdAt, 0, day) < date_subtract(now(), 30, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "cutoff", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(45).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    //merchant.createdAt >= date_subtract(now(), 90, day)
+    @Test
+    public void givenDateSubtract() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' merchant.createdAt >= date_subtract(now(), 90, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "cutoff", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+                Map.of("createdAt", java.time.LocalDate.now().minusDays(45).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+
+
+    @Test
+    public void givenDateSubtractCutoffRecentAccountShouldAllow() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' date_add(merchant.createdAt, 0, day) < date_subtract(now(), 30, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "default", "default", "allow");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(10).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenRawDatePropertyWithinCutoffShouldBlock() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' merchant.createdAt >= date_subtract(now(), 90, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "cutoff", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(45).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenRawDatePropertyOlderThanCutoffShouldAllow() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' merchant.createdAt >= date_subtract(now(), 90, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "default", "default", "allow");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(120).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenDateExprComparedToRawDatePropertyShouldBlock() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' date_subtract(now(), 90, day) <= merchant.createdAt return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "cutoff", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(45).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenNonDateStringComparedToDateExprShouldWarn() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' merchant.createdAt >= date_subtract(now(), 90, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "default", "default", "allow",
+            Set.of("There is a comparison between different dataTypes in rule cutoff"));
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", "not-a-date")));
+        Assertions.assertEquals(expectedResult, result);
+        Assertions.assertFalse(result.isError());
+    }
+
 } 
