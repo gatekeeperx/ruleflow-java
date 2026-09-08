@@ -657,6 +657,25 @@ class DateTimeTest {
         Assertions.assertEquals(expectedResult, result);
     }
 
+    //merchant.createdAt >= date_subtract(now(), 90, day)
+    @Test
+    public void givenDateSubtract() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' merchant.createdAt >= date_subtract(now(), 90, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "cutoff", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+                Map.of("createdAt", java.time.LocalDate.now().minusDays(45).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+
+
     @Test
     public void givenDateSubtractCutoffRecentAccountShouldAllow() {
         String workflow = """
@@ -671,6 +690,72 @@ class DateTimeTest {
         WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
             Map.of("createdAt", java.time.LocalDate.now().minusDays(10).toString())));
         Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenRawDatePropertyWithinCutoffShouldBlock() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' merchant.createdAt >= date_subtract(now(), 90, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "cutoff", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(45).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenRawDatePropertyOlderThanCutoffShouldAllow() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' merchant.createdAt >= date_subtract(now(), 90, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "default", "default", "allow");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(120).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenDateExprComparedToRawDatePropertyShouldBlock() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' date_subtract(now(), 90, day) <= merchant.createdAt return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "cutoff", "block");
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", java.time.LocalDate.now().minusDays(45).toString())));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenNonDateStringComparedToDateExprShouldWarn() {
+        String workflow = """
+            workflow 'test'
+                ruleset 'dummy'
+                    'cutoff' merchant.createdAt >= date_subtract(now(), 90, day) return block
+                default allow
+            end
+        """;
+        Workflow ruleEngine = new Workflow(workflow);
+        WorkflowResult expectedResult = new WorkflowResult("test", "default", "default", "allow",
+            Set.of("There is a comparison between different dataTypes in rule cutoff"));
+        WorkflowResult result = ruleEngine.evaluate(Map.of("merchant",
+            Map.of("createdAt", "not-a-date")));
+        Assertions.assertEquals(expectedResult, result);
+        Assertions.assertFalse(result.isError());
     }
 
 } 
