@@ -515,4 +515,71 @@ class DateTimeTest {
         Assertions.assertEquals(expectedResult, result);
     }
 
+    // ---- dateDiff(now(), merchant.createdAt, day) merchant-age rules ----
+    // createdAt is computed relative to today so the tests are clock-independent.
+    // Ages are kept well clear of the 30/90 boundaries so the day-unit truncation
+    // and a possible midnight rollover (which can shift the count by 1) can't flip
+    // any assertion.
+
+    private static final String TEST1_WORKFLOW = """
+        workflow 'test'
+            ruleset 'dummy'
+                'TEST1' dateDiff(now(), merchant.createdAt, day) >= 30 AND dateDiff(now(), merchant.createdAt, day) < 90 RETURN block
+            default allow
+        end
+    """;
+
+    private static final String TEST2_WORKFLOW = """
+        workflow 'test'
+            ruleset 'dummy'
+                'TEST2'  dateDiff(now(), merchant.createdAt, day) < 30 RETURN block
+            default allow
+        end
+    """;
+
+    private static Map<String, Object> merchantCreatedDaysAgo(int days) {
+        String createdAt = java.time.LocalDate.now().minusDays(days).toString();
+        return Map.of("merchant", Map.of("createdAt", createdAt));
+    }
+
+    @Test
+    public void givenMerchant45DaysOldShouldBlockOnTest1() {
+        Workflow ruleEngine = new Workflow(TEST1_WORKFLOW);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "TEST1", "block");
+        WorkflowResult result = ruleEngine.evaluate(merchantCreatedDaysAgo(45));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenMerchant10DaysOldShouldNotBlockOnTest1() {
+        Workflow ruleEngine = new Workflow(TEST1_WORKFLOW);
+        WorkflowResult expectedResult = new WorkflowResult("test", "default", "default", "allow");
+        WorkflowResult result = ruleEngine.evaluate(merchantCreatedDaysAgo(10));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenMerchant120DaysOldShouldNotBlockOnTest1() {
+        Workflow ruleEngine = new Workflow(TEST1_WORKFLOW);
+        WorkflowResult expectedResult = new WorkflowResult("test", "default", "default", "allow");
+        WorkflowResult result = ruleEngine.evaluate(merchantCreatedDaysAgo(120));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenMerchant10DaysOldShouldBlockOnTest2() {
+        Workflow ruleEngine = new Workflow(TEST2_WORKFLOW);
+        WorkflowResult expectedResult = new WorkflowResult("test", "dummy", "TEST2", "block");
+        WorkflowResult result = ruleEngine.evaluate(merchantCreatedDaysAgo(10));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
+    @Test
+    public void givenMerchant45DaysOldShouldNotBlockOnTest2() {
+        Workflow ruleEngine = new Workflow(TEST2_WORKFLOW);
+        WorkflowResult expectedResult = new WorkflowResult("test", "default", "default", "allow");
+        WorkflowResult result = ruleEngine.evaluate(merchantCreatedDaysAgo(45));
+        Assertions.assertEquals(expectedResult, result);
+    }
+
 } 
