@@ -54,8 +54,8 @@ public class RulesetVisitor extends RuleFlowLanguageBaseVisitor<WorkflowResult> 
 
     @Override
     public WorkflowResult visitWorkflow(RuleFlowLanguageParser.WorkflowContext ctx) {
-        Visitor visitor = new Visitor(data, lists, data, functions, resolvedFunctions);
         Set<String> warnings = new HashSet<>();
+        Visitor visitor = new Visitor(data, lists, data, functions, resolvedFunctions, warnings);
         List<WorkflowResult> matchedRules = new ArrayList<>();
         List<Action> accumulatedActions = new ArrayList<>();
         boolean error = false;

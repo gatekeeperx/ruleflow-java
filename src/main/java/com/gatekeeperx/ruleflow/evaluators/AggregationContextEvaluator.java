@@ -2,6 +2,7 @@ package com.gatekeeperx.ruleflow.evaluators;
 
 import com.gatekeeperx.ruleflow.RuleFlowLanguageLexer;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
+import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
 import com.gatekeeperx.ruleflow.errors.TypeComparisonException;
 import com.gatekeeperx.ruleflow.visitors.Visitor;
 import org.slf4j.Logger;
@@ -9,6 +10,8 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -20,14 +23,18 @@ public class AggregationContextEvaluator implements ContextEvaluator<RuleFlowLan
     public Object evaluate(RuleFlowLanguageParser.AggregationContext ctx, Visitor visitor) {
         Object value = visitor.visit(ctx.value);
 
-        if (value instanceof List<?>) {
-            List<?> list = (List<?>) value;
+        if (value == null) {
+            throw new PropertyNotFoundException(ctx.value.getText() + " field cannot be found");
+        }
+
+        List<?> list = asList(value);
+        if (list != null) {
             boolean res = false;
             switch (ctx.op.getType()) {
                 case RuleFlowLanguageLexer.K_ALL:
                     res = list.stream().allMatch(data -> {
                         try {
-                            return (Boolean) evalPredicate(data, visitor.getRoot(), visitor.getLists(), ctx.predicate);
+                            return (Boolean) evalPredicate(data, visitor, ctx.predicate);
                         } catch (TypeComparisonException | NullPointerException e) { return false; }
                     });
                     logger.debug("Aggregation: ALL expr={}, result={}", value, res);
@@ -36,7 +43,7 @@ public class AggregationContextEvaluator implements ContextEvaluator<RuleFlowLan
                 case RuleFlowLanguageLexer.K_ANY:
                     res = list.stream().anyMatch(data -> {
                         try {
-                            return (Boolean) evalPredicate(data, visitor.getRoot(), visitor.getLists(), ctx.predicate);
+                            return (Boolean) evalPredicate(data, visitor, ctx.predicate);
                         } catch (TypeComparisonException | NullPointerException e) { return false; }
                     });
                     logger.debug("Aggregation: ANY/CONTAINS expr={}, result={}", value, res);
@@ -44,24 +51,21 @@ public class AggregationContextEvaluator implements ContextEvaluator<RuleFlowLan
                 case RuleFlowLanguageLexer.K_NONE:
                     res = list.stream().noneMatch(data -> {
                         try {
-                            return (Boolean) evalPredicate(data, visitor.getRoot(), visitor.getLists(), ctx.predicate);
+                            return (Boolean) evalPredicate(data, visitor, ctx.predicate);
                         } catch (TypeComparisonException | NullPointerException e) { return false; }
                     });
                     logger.debug("Aggregation: NONE expr={}, result={}", value, res);
                     return res;
                 case RuleFlowLanguageLexer.K_AVERAGE:
-                    Object average = average(list, ctx.predicate, visitor.getLists(),
-                        visitor.getRoot());
+                    Object average = average(list, ctx.predicate, visitor);
                     logger.debug("Aggregation: AVERAGE expr={}, result={}", value, average);
                     return average;
                 case RuleFlowLanguageLexer.K_COUNT:
-                    Object count = count(list, ctx.predicate, visitor.getLists(),
-                        visitor.getRoot());
+                    Object count = count(list, ctx.predicate, visitor);
                     logger.debug("Aggregation: COUNT expr={}, result={}", value, count);
                     return count;
                 case RuleFlowLanguageLexer.K_DISTINCT:
-                    Object distinctBy = distinctBy(list, ctx.predicate, visitor.getLists(),
-                        visitor.getRoot());
+                    Object distinctBy = distinctBy(list, ctx.predicate, visitor);
                     logger.debug("Aggregation: DISTINCT expr={}, result={}", value, distinctBy);
                     return res;
                 default:
@@ -73,41 +77,49 @@ public class AggregationContextEvaluator implements ContextEvaluator<RuleFlowLan
         }
     }
 
+    private static List<?> asList(Object value) {
+        if (value instanceof List<?> list) {
+            return list;
+        } else if (value instanceof Collection<?> collection) {
+            return List.copyOf(collection);
+        } else if (value instanceof Object[] array) {
+            return Arrays.asList(array);
+        }
+        return null;
+    }
+
     private Object distinctBy(
         List<?> list,
         RuleFlowLanguageParser.ExprContext predicate,
-        Map<String, List<?>> lists,
-        Object root) {
+        Visitor visitor) {
         if (predicate == null) {
             return list;
         } else if (predicate instanceof RuleFlowLanguageParser.ValueContext) {
             return list.stream().distinct().collect(Collectors.toList());
         } else {
-            return list.stream().distinct().map(data -> evalPredicate(data, root, lists, predicate)).collect(Collectors.toList());
+            return list.stream().distinct().map(data -> evalPredicate(data, visitor, predicate)).collect(Collectors.toList());
         }
     }
 
     private Object average(
         List<?> list,
         RuleFlowLanguageParser.ExprContext predicate,
-        Map<String, List<?>> lists,
-        Object root) {
-        BigDecimal count = new BigDecimal(count(list, predicate, lists, root).toString());
+        Visitor visitor) {
+        BigDecimal count = new BigDecimal(count(list, predicate, visitor).toString());
         return count.divide(BigDecimal.valueOf(list.size()), 3, RoundingMode.DOWN);
     }
 
     private Object count(
         List<?> list,
         RuleFlowLanguageParser.ExprContext predicate,
-        Map<String, List<?>> lists,
-        Object root) {
+        Visitor visitor) {
         if (predicate == null) {
             return BigDecimal.valueOf(list.size());
         } else {
             long count = list.stream()
                 .filter(data -> {
                     try {
-                        return (Boolean) evalPredicate(data, root, lists, predicate);
+                        return (Boolean) evalPredicate(data, visitor, predicate);
                     } catch (TypeComparisonException | NullPointerException e) { return false; }
                 })
                 .count();
@@ -115,17 +127,17 @@ public class AggregationContextEvaluator implements ContextEvaluator<RuleFlowLan
         }
     }
 
-    private Object evalPredicate(Object data, Object root, Map<String, List<?>> lists, RuleFlowLanguageParser.ExprContext ctx) {
+    private Object evalPredicate(Object data, Visitor visitor, RuleFlowLanguageParser.ExprContext ctx) {
         // Handle direct value comparisons in predicates
         if (ctx instanceof RuleFlowLanguageParser.ValueContext) {
             // For direct value comparisons like {'blocked'}, compare the list item directly with the predicate value
-            Object predicateValue = new Visitor((Map<String, Object>) root, lists, (Map<String, Object>) root).visit(ctx);
+            Object predicateValue = visitor.forData(visitor.getRoot()).visit(ctx);
             return compareValues(data, predicateValue);
         } else {
             // Inject "it" so `it.field` expressions resolve to the current item
             java.util.Map<String, Object> predicateData = new java.util.LinkedHashMap<>((Map<String, Object>) data);
             predicateData.put("it", data);
-            return new Visitor(predicateData, lists, (Map<String, Object>) root).visit(ctx);
+            return visitor.forData(predicateData).visit(ctx);
         }
     }
 
