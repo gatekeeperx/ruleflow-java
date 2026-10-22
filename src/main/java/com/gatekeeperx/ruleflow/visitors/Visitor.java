@@ -1,6 +1,7 @@
 package com.gatekeeperx.ruleflow.visitors;
 
 import com.gatekeeperx.ruleflow.RuleFlowLanguageBaseVisitor;
+import com.gatekeeperx.ruleflow.RuleFlowLanguageLexer;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageParser;
 import com.gatekeeperx.ruleflow.RuleFlowLanguageParser.PropertyTupleContext;
 import com.gatekeeperx.ruleflow.errors.PropertyNotFoundException;
@@ -36,12 +37,17 @@ import com.gatekeeperx.ruleflow.evaluators.ValueContextEvaluator;
 import com.gatekeeperx.ruleflow.evaluators.StringDistanceContextEvaluator;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
+    private static final Logger logger = LoggerFactory.getLogger(Visitor.class);
     private final Map<String, ?> data;
     private final Map<String, List<?>> lists;
     private final Map<String, ?> root;
@@ -49,6 +55,7 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
     private final Map<String, Object> resolvedFunctions;
     private final Map<List<Object>, Object> functionCallCache = new HashMap<>();
     private final Map<String, Object> variables = new HashMap<>();
+    private final Set<String> warnings;
 
     public Visitor(Map<String, ?> data, Map<String, List<?>> lists, Map<String, ?> root) {
         this(data, lists, root, Map.of(), Map.of());
@@ -61,6 +68,13 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
 
     public Visitor(Map<String, ?> data, Map<String, List<?>> lists, Map<String, ?> root,
                    Map<String, RuleflowFunction> functions, Map<String, Object> resolvedFunctions) {
+        this(data, lists, root, functions, resolvedFunctions, new HashSet<>());
+    }
+
+    public Visitor(Map<String, ?> data, Map<String, List<?>> lists, Map<String, ?> root,
+                   Map<String, RuleflowFunction> functions, Map<String, Object> resolvedFunctions,
+                   Set<String> warnings) {
+        this.warnings = warnings;
         this.data = data;
         this.lists = lists != null ? lists : Map.of();
         this.root = root;
@@ -68,11 +82,54 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
         this.resolvedFunctions = resolvedFunctions != null ? resolvedFunctions : Map.of();
     }
 
+    /** Visitor over another data scope (e.g. a collection item) sharing lists, root and warnings. */
+    public Visitor forData(Map<String, ?> itemData) {
+        return new Visitor(itemData, lists, root, Map.of(), Map.of(), warnings);
+    }
+
     @Override
     public Object visit(ParseTree tree) {
         ParserRuleContext ctx = (ParserRuleContext) tree;
 
         try {
+            return dispatch(ctx);
+        } catch (RuntimeException e) {
+            // A boolean operation over a missing property is false instead of failing the whole rule
+            PropertyNotFoundException missing = yieldsBoolean(ctx) ? findMissingProperty(e) : null;
+            if (missing != null) {
+                logger.debug("Missing property in '{}', assuming false: {}", ctx.getText(), missing.getMessage());
+                warnings.add(missing.getMessage());
+                return false;
+            }
+            if (e instanceof PropertyNotFoundException || e instanceof UnexpectedSymbolException) {
+                throw new RuntimeException(e);
+            }
+            throw e;
+        }
+    }
+
+    private static boolean yieldsBoolean(ParserRuleContext ctx) {
+        if (ctx instanceof RuleFlowLanguageParser.AggregationContext aggregation) {
+            int op = aggregation.op.getType();
+            return op == RuleFlowLanguageLexer.K_ANY || op == RuleFlowLanguageLexer.K_CONTAINS
+                || op == RuleFlowLanguageLexer.K_ALL || op == RuleFlowLanguageLexer.K_NONE;
+        }
+        return ctx instanceof RuleFlowLanguageParser.ComparatorContext
+            || ctx instanceof RuleFlowLanguageParser.ListContext
+            || ctx instanceof RuleFlowLanguageParser.TupleListContext;
+    }
+
+    private static PropertyNotFoundException findMissingProperty(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof PropertyNotFoundException missing) {
+                return missing;
+            }
+        }
+        return null;
+    }
+
+    private Object dispatch(ParserRuleContext ctx) {
+        {
             if (ctx instanceof RuleFlowLanguageParser.ComparatorContext) {
                 return new ComparatorContextEvaluator().evaluate((RuleFlowLanguageParser.ComparatorContext) ctx, this);
             } else if (ctx instanceof RuleFlowLanguageParser.NullCheckContext) {
@@ -152,8 +209,6 @@ public class Visitor extends RuleFlowLanguageBaseVisitor<Object> {
             } else {
                 throw new IllegalArgumentException("Operation not supported: " + ctx.getClass());
             }
-        } catch (PropertyNotFoundException | UnexpectedSymbolException e) {
-            throw new RuntimeException(e);
         }
     }
 
