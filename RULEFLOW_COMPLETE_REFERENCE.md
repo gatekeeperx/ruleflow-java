@@ -215,10 +215,27 @@ NOT (status = 'blocked')
 
 ### Null checks
 
+Use `IS NULL`, `IS EMPTY` or `IS BLANK` (and their negated forms `IS NOT ...`) to check whether a field is null, empty or blank:
+
 ```
-'null_check' field = null  RETURN 'missing_field'
-'not_null'   field <> null RETURN 'has_value'
+'null_check' email IS NULL      RETURN 'missing_email'
+'not_null'   email IS NOT NULL  RETURN 'has_email'
+'empty'      email IS EMPTY     RETURN 'empty_email'
+'blank'      notes IS BLANK     RETURN 'blank_notes'
 ```
+
+| Operator | True when |
+|---|---|
+| `IS NULL` | The field is `null` or does not exist |
+| `IS EMPTY` | The field is `null`, does not exist, or is an empty string (`''`) |
+| `IS BLANK` | The field is `null`, does not exist, is an empty string, or contains only whitespace |
+
+- Each operator is a superset of the previous one: `BLANK` ⊃ `EMPTY` ⊃ `NULL`.
+- They **never generate a warning** for a missing field: an absent or `null` field is treated as `null`.
+- A non-string value (e.g. the number `42`) is never `EMPTY` or `BLANK`.
+- They work with nested properties (`device.fingerprint IS NULL`) and combine with other conditions (`email IS NOT NULL AND email <> 'test@example.com'`). Keywords are case-insensitive.
+
+Comparing against the `null` literal (`field = null`, `field <> null`) compares normally when the field has a real value, but when the field is absent or `null` it adds the `<field> field cannot be found` warning and evaluates to `false`. Prefer `IS NULL` / `IS NOT NULL` for null checks.
 
 ---
 
@@ -236,7 +253,12 @@ order.address.city
 device.info.fingerprint
 ```
 
-Each segment must be present. If any is missing, the rule is skipped with a warning.
+Property names in the payload are **case-insensitive**: `customer.name` and `Customer.Name` resolve to the same field.
+
+Each segment must be present. If any is missing (or its value is `null`), the property is considered not found:
+
+- When it is used inside a **comparison**, a **list operator** (`IN`, `CONTAINS`, `STARTS_WITH`, with or without `NOT`) or an `any` / `all` / `none` aggregation, that operation evaluates to `false`, the `<field> field cannot be found` warning is added, and **the rest of the rule keeps being evaluated** (e.g. `x = 1 OR y = 2` still matches on `y`).
+- In other contexts (e.g. arithmetic), the rule is skipped with the warning.
 
 ### Leading dot — root context
 
@@ -416,7 +438,7 @@ Aggregations operate on list-type fields within the evaluated data payload.
 | `field.distinct { predicate }` | Distinct values from matched items | Collection |
 | `field.distinct()` | All distinct values | Collection |
 
-Inside `{ }`, `it` refers to the current item. Bare field names also resolve against the current item first, then fall back to parent context.
+Inside `{ }`, `it` refers to the current item. Bare field names also resolve against the current item first, then fall back to parent context. Aggregations accept any `Collection` or array, not only `List`; a collection field that is present with a `null` value is treated as missing.
 
 ```
 -- Does any item equal the string 'fraud'?
@@ -776,6 +798,8 @@ date(now())                        -- wrap now() into a date context
 datetime('2024-01-15T12:30:00Z')   -- parse ISO datetime with timezone
 ```
 
+`now()` can be used anywhere a date is expected: `dateDiff`, `date_add`, `date_subtract`, `day_of_week` and the component functions (`year`, `month`, `day`, `hour`, `minute`).
+
 ### Date difference
 
 Returns the **absolute** difference between two dates.
@@ -789,6 +813,7 @@ Units: `day`, `hour`, `minute`
 ```
 dateDiff(date(now()), date(created_at), day) > 30
 dateDiff(date(start), date(end), hour) < 48
+dateDiff(now(), merchant.createdAt, day) < 30
 ```
 
 Aliases: `dateDiff`, `datediff`, `date_diff`.
@@ -808,7 +833,35 @@ Aliases: `date_add` / `dateAdd` and `date_subtract` / `dateSubtract`.
 day_of_week(date(transaction_date))
 ```
 
-Returns a number: `0` = Sunday, `1` = Monday, …, `6` = Saturday.
+Returns the day name in English, in uppercase: `MONDAY`, `TUESDAY`, `WEDNESDAY`, `THURSDAY`, `FRIDAY`, `SATURDAY`, `SUNDAY`. Because `=` is case-insensitive, `day_of_week(x) = 'saturday'` also works.
+
+```
+day_of_week('2024-06-01') = 'SATURDAY'
+```
+
+### Date components
+
+| Function | Description | Example |
+|---|---|---|
+| `year(date)` | Year | `year('2024-06-01T12:30Z') = 2024` |
+| `month(date)` | Month (1-12) | `month('2024-06-01T12:30Z') = 6` |
+| `day(date)` | Day of the month (1-31) | `day('2024-06-01T12:30Z') = 1` |
+| `hour(date)` | Hour (0-23) | `hour('2024-06-01T12:30Z') = 12` |
+| `minute(date)` | Minutes (0-59) | `minute('2024-06-01T12:30Z') = 30` |
+
+All of them return a number and accept a literal, a property or `now()`. Components are computed in the value's own time zone; strings without a zone are interpreted in the server's default time zone.
+
+```
+hour(transaction.createdAt) >= 9 AND hour(transaction.createdAt) < 11
+```
+
+### Comparing dates
+
+A property holding a date as a string can be compared directly against a date expression. If the string is not a valid date, the comparison produces a "different dataTypes" warning.
+
+```
+merchant.createdAt >= date_subtract(now(), 90, day)
+```
 
 ### Examples
 
@@ -816,7 +869,7 @@ Returns a number: `0` = Sunday, `1` = Monday, …, `6` = Saturday.
 'expired'     date(expiry) < date(now())                            RETURN 'expired'
 'recent'      dateDiff(date(now()), date(created_at), day) <= 7     RETURN 'new'
 'future'      date_add(date(now()), 30, day) > date(deadline)       RETURN 'urgent'
-'weekend'     day_of_week(date(txn_date)) IN 0, 6                   RETURN 'weekend'
+'weekend'     day_of_week(date(txn_date)) = 'SATURDAY' OR day_of_week(date(txn_date)) = 'SUNDAY'   RETURN 'weekend'
 ```
 
 ---
@@ -935,7 +988,7 @@ RuleFlow is designed for resilience: individual rule failures do not abort the w
 
 | Situation | Warning message |
 |---|---|
-| Property not found in data | `"<field> field cannot be found"` |
+| Property not found in data | `"<field> field cannot be found"` — the comparison, list operator or `any` / `all` / `none` aggregation that uses it evaluates to `false` and the rest of the rule keeps being evaluated; in other contexts the rule is skipped |
 | Type mismatch in comparison | `"There is a comparison between different dataTypes in rule <name>"` |
 | Undefined custom function | `"Custom function '<name>' is not defined"` |
 | Custom function throws | `"Custom function '<name>' failed: <message>"` |
@@ -950,9 +1003,9 @@ boolean hadError     = result.isError();   // true only for unexpected engine-le
 
 ### Null behaviour
 
-- `field = null` — true if the field is null or absent
-- `field <> null` — true if the field has a non-null value
-- Accessing a null-valued nested path (e.g. `user.address.city` when `address` is null) — rule skipped with warning
+- `field IS NULL` / `IS EMPTY` / `IS BLANK` — check for null, empty and blank values **without a warning**; an absent or `null` field is treated as `null`
+- `field = null` / `field <> null` — compare normally when the field has a real value; when the field is absent or `null` they add the "field cannot be found" warning and evaluate to `false`. Use `IS NULL` to check for nulls
+- Accessing a null-valued nested path (e.g. `user.address.city` when `address` is null) — the property is considered not found (see above)
 - Null field in an aggregation predicate (e.g. `it.priority > 3` where `priority` is null) — item treated as not matching, no warning
 
 ---
@@ -964,7 +1017,7 @@ boolean hadError     = result.isError();   // true only for unexpected engine-le
 | Keywords (`WORKFLOW`, `RETURN`, `AND`, `IN`, …) | Case-insensitive |
 | Built-in function names (`dateDiff`, `geohash_encode`, …) | Case-insensitive |
 | Custom function names | **Case-sensitive** (must match registration key exactly) |
-| Property names | **Case-sensitive** |
+| Payload property names | Case-insensitive (`customer.name` and `Customer.Name` resolve to the same field) |
 | String comparison with `=` | Case-insensitive |
 | String comparison with `==` | **Case-sensitive** |
 | String literals (`'US'`, `'us'`) | Treated as written |
@@ -1106,7 +1159,7 @@ WORKFLOW 'tag_transaction' EVALUATION_MODE MULTI_MATCH
     RULESET 'tags'
         'high_value'    amount > 5000                              RETURN 'high_value'
         'international' country <> home_country                    RETURN 'international'
-        'weekend'       day_of_week(date(created)) IN 0, 6         RETURN 'weekend'
+        'weekend'       day_of_week(date(created)) = 'SATURDAY' OR day_of_week(date(created)) = 'SUNDAY'   RETURN 'weekend'
         'new_merchant'  NOT (merchant IN list('known_merchants'))   RETURN 'new_merchant'
 
     DEFAULT RETURN 'standard'
@@ -1133,10 +1186,11 @@ List<String> tags = result.getMatchedRules()
 - **Use root access (`.field`)** inside collection predicates when cross-referencing root data: `items.any { price > .user.spending_limits.max }`.
 - **Use named function arguments** for clarity when a custom function takes multiple parameters: `kyc(documentNumber: docId, fullName: firstName + ' ' + lastName)`.
 - **Keep rule names descriptive** — they appear in `result.getRule()` and in warning messages.
-- **Test missing properties** — any missing path in the request data skips the rule with a warning rather than throwing. Verify that your default covers those cases.
+- **Use `IS NULL` / `IS EMPTY` / `IS BLANK`** to check for nulls instead of `= null` / `<> null`: they do not produce warnings for absent fields.
+- **Test missing properties** — any missing path in the request data makes the operation that uses it evaluate to `false` with a warning, rather than throwing. Verify that your default covers those cases.
 
 ---
 
 ## 23. Reserved Keywords
 
-`workflow`, `ruleset`, `default`, `end`, `return`, `with`, `and`, `or`, `not`, `then`, `continue`, `in`, `contains`, `starts_with`, `any`, `all`, `none`, `count`, `average`, `distinct`, `list`, `elem`, `it`, `action`, `set`, `true`, `false`, `null`, `evaluation_mode`, `single_match`, `multi_match`, `now`, `date`, `datetime`, `date_add`, `date_subtract`, `date_diff`, `day_of_week`, `abs`, `expr`
+`workflow`, `ruleset`, `default`, `end`, `return`, `with`, `and`, `or`, `not`, `then`, `continue`, `in`, `is`, `empty`, `blank`, `contains`, `starts_with`, `any`, `all`, `none`, `count`, `average`, `distinct`, `list`, `elem`, `it`, `action`, `set`, `true`, `false`, `null`, `evaluation_mode`, `single_match`, `multi_match`, `now`, `date`, `datetime`, `date_add`, `date_subtract`, `date_diff`, `day_of_week`, `year`, `month`, `day`, `hour`, `minute`, `abs`, `expr`
